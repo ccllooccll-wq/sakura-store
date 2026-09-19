@@ -1,0 +1,222 @@
+/* Sakura Store — Modern Design System (Glassmorphism & K-Culture Pink Theme) */
+
+:root {
+  --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Color Palette */
+  --bg-primary: #0f0e17;
+  --bg-surface: #181623;
+  --bg-card: rgba(30, 27, 46, 0.7);
+  --bg-card-hover: rgba(42, 38, 64, 0.8);
+  --border-color: rgba(255, 121, 198, 0.15);
+  --border-focus: #ff79c6;
+
+  /* Sakura Colors */
+  --sakura-pink: #ff75a0;
+  --sakura-pink-light: #ffb3c6;
+  --sakura-pink-dark: #d81b60;
+  --sakura-gradient: linear-gradient(135deg, #ff75a0 0%, #ff4081 50%, #9c27b0 100%);
+  --sakura-glow: 0 0 20px rgba(255, 117, 160, 0.4);
+
+  /* Status Colors */
+  --accent-purple: #bd93f9;
+  --accent-cyan: #8be9fd;
+  --accent-green: #50fa7b;
+  --accent-amber: #ffb86c;
+  --accent-red: #ff5555;
+
+  /* Text Colors */
+  --text-primary: #f8f8f2;
+  --text-secondary: #a0a0b8;
+  --text-muted: #6272a4;
+
+  /* Radius & Shadows */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --shadow-subtle: 0 10px 30px rgba(0, 0, 0, 0.3);
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --backdrop-blur: blur(12px);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body.sakura-theme {
+  font-family: var(--font-body);
+  background-color: var(--bg-primary);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(255, 117, 160, 0.12) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(189, 147, 249, 0.1) 0px, transparent 50%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+/* Glassmorphism Card Utility */
+.glass-card {
+  background: var(--bg-card);
+  backdrop-filter: var(--backdrop-blur);
+  -webkit-backdrop-filter: var(--backdrop-blur);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-glass);
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.glass-card:hover {
+  border-color: rgba(255, 117, 160, 0.3);
+  box-shadow: 0 12px 40px rgba(255, 117, 160, 0.15);
+}
+
+/* Base Buttons */
+.btn-sakura {
+  background: var(--sakura-gradient);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-weight: 600;
+  padding: 10px 22px;
+  border-radius: var(--radius-sm);
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 15px rgba(255, 117, 160, 0.3);
+  transition: all 0.25s ease;
+}
+
+.btn-sakura:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 22px rgba(255, 117, 160, 0.5);
+}
+
+.btn-sakura:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+  font-weight: 500;
+  padding: 10px 20px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Badges */
+.badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.badge-admin {
+  background: rgba(189, 147, 249, 0.15);
+  color: #bd93f9;
+  border: 1px solid rgba(189, 147, 249, 0.3);
+}
+
+.badge-vendedor {
+  background: rgba(139, 233, 253, 0.15);
+  color: #8be9fd;
+  border: 1px solid rgba(139, 233, 253, 0.3);
+}
+
+.badge-almacenero {
+  background: rgba(255, 184, 108, 0.15);
+  color: #ffb86c;
+  border: 1px solid rgba(255, 184, 108, 0.3);
+}
+
+.badge-active {
+  background: rgba(80, 250, 123, 0.15);
+  color: #50fa7b;
+  border: 1px solid rgba(80, 250, 123, 0.3);
+}
+
+.badge-inactive {
+  background: rgba(255, 85, 85, 0.15);
+  color: #ff5555;
+  border: 1px solid rgba(255, 85, 85, 0.3);
+}
+
+/* Custom Inputs */
+.form-group {
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.form-control {
+  background: rgba(15, 14, 23, 0.6);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 10px rgba(255, 121, 198, 0.25);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 117, 160, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--sakura-pink);
+}
