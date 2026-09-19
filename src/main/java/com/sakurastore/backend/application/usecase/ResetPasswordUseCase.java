@@ -1,0 +1,69 @@
+package com.sakurastore.backend.application.usecase;
+
+import com.sakurastore.backend.application.dto.ApiResponseDto;
+import com.sakurastore.backend.application.dto.ResetPasswordCommand;
+import com.sakurastore.backend.application.port.PasswordEncoderPort;
+import com.sakurastore.backend.domain.exception.DomainException;
+import com.sakurastore.backend.domain.model.EmailVerification;
+import com.sakurastore.backend.domain.model.User;
+import com.sakurastore.backend.domain.port.EmailVerificationRepositoryPort;
+import com.sakurastore.backend.domain.port.UserRepositoryPort;
+
+public class ResetPasswordUseCase {
+
+    private static final int MAX_ATTEMPTS = 5;
+    private final UserRepositoryPort userRepositoryPort;
+    private final EmailVerificationRepositoryPort emailVerificationRepositoryPort;
+    private final PasswordEncoderPort passwordEncoderPort;
+
+    public ResetPasswordUseCase(UserRepositoryPort userRepositoryPort,
+                                EmailVerificationRepositoryPort emailVerificationRepositoryPort,
+                                PasswordEncoderPort passwordEncoderPort) {
+        this.userRepositoryPort = userRepositoryPort;
+        this.emailVerificationRepositoryPort = emailVerificationRepositoryPort;
+        this.passwordEncoderPort = passwordEncoderPort;
+    }
+
+    public ApiResponseDto execute(ResetPasswordCommand command) {
+        String cleanEmail = command.getEmail().trim().toLowerCase();
+
+        User user = userRepositoryPort.findByEmail(cleanEmail)
+                .orElseThrow(() -> new DomainException("No se encontró ninguna cuenta registrada con ese correo electrónico."));
+
+        if (!user.isActive()) {
+            throw new DomainException("El usuario se encuentra desactivado. Por favor contacte al Administrador.");
+        }
+
+        EmailVerification verification = emailVerificationRepositoryPort.findLatestByUserId(user.getId())
+                .orElseThrow(() -> new DomainException("No existe un código de recuperación activo para este correo. Solicita uno nuevo."));
+
+        if (verification.isUsed()) {
+            throw new DomainException("Este código de verificación ya ha sido utilizado. Solicita uno nuevo.");
+        }
+
+        if (verification.hasExceededAttempts(MAX_ATTEMPTS)) {
+            throw new DomainException("Has superado el límite de intentos permitidos (5). Solicita un nuevo código.");
+        }
+
+        verification.incrementAttempts();
+        emailVerificationRepositoryPort.save(verification);
+
+        if (verification.isExpired()) {
+            throw new DomainException("El código de verificación ha expirado. Por favor, solicita uno nuevo.");
+        }
+
+        if (!passwordEncoderPort.matches(command.getCodigo(), verification.getCodeHash())) {
+            throw new DomainException("El código introducido es incorrecto. Verifica los 6 dígitos ingresados.");
+        }
+
+        verification.markAsUsed();
+        emailVerificationRepositoryPort.save(verification);
+
+        String encodedPassword = passwordEncoderPort.encode(command.getNuevaPassword());
+        user.changePassword(encodedPassword);
+        user.markEmailAsVerified();
+        userRepositoryPort.save(user);
+
+        return new ApiResponseDto("Contraseña restablecida exitosamente. Ya puedes iniciar sesión con tu nueva contraseña.");
+    }
+}
