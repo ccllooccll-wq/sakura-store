@@ -31,3 +31,16 @@ Thumbs.db
 
 ### VS Code ###
 .vscode/
+
+# Local credentials and generated output
+.env
+.env.*
+!.env.example
+**/application-local.properties
+**/node_modules/
+**/target/
+**/dist/
+**/.angular/
+.idea/
+*.iml
+!.run/
