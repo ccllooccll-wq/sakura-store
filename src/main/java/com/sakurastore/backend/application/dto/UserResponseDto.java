@@ -104,3 +104,4 @@ public class UserResponseDto {
     this.updatedAt = updatedAt;
   }
 }
+// modificado por derik

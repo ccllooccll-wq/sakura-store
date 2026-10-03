@@ -75,3 +75,4 @@ public class UserController {
     ApiResponseDto response = deleteUserUseCase.execute(id);
     return ResponseEntity.ok(response);
   }
+// modificado por derik

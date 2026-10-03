@@ -42,3 +42,4 @@ public class UseCaseConfig {
     return new DeleteUserUseCase(userRepositoryPort, emailVerificationRepositoryPort);
   }
 }
+// modificado por derik
