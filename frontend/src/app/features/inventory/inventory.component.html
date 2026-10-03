@@ -1,0 +1,408 @@
+<main class="inventory-shell">
+  <div class="page-heading">
+    <div>
+      <p class="eyebrow">SAKURA STORE / OPERACIONES</p>
+      <h1>Tu inventario, al día<span>.</span></h1>
+      <p class="muted">
+        Controla productos, existencias y cada movimiento de tu tienda.
+      </p>
+    </div>
+    @if (auth.canManageInventory()) {
+      <button
+        class="btn-sakura"
+        (click)="openProduct()"
+        >
+        + Nuevo producto
+      </button>
+    }
+  </div>
+  @if (error && !modal) {
+    <div class="notice error" role="alert">
+      {{ error }}
+    </div>
+  }
+  @if (success) {
+    <div class="notice success" role="status">{{ success }}</div>
+  }
+  <section class="metrics" aria-label="Resumen del inventario">
+    <article>
+      <span>Productos activos</span><strong>{{ activeCount() }}</strong
+      ><small>Catálogo disponible</small>
+    </article>
+    <article>
+      <span>Unidades en stock</span><strong>{{ units() }}</strong
+      ><small>Existencias registradas</small>
+    </article>
+    <article class="warning">
+      <span>Stock bajo</span><strong>{{ lowCount() }}</strong
+      ><small>Productos que necesitan reposición</small>
+    </article>
+    <article>
+      <span>Valor a precio de venta</span
+        ><strong>{{ value() | number: "1.2-2" }} <em>Bs</em></strong
+        ><small>Stock × precio de venta</small>
+      </article>
+    </section>
+    <section class="catalog">
+      <div class="catalog-top">
+        <div class="tabs">
+          <button
+            [class.selected]="tab === 'products'"
+            (click)="tab = 'products'"
+            >
+            Productos</button
+            ><button
+            [class.selected]="tab === 'movements'"
+            (click)="tab = 'movements'"
+            >
+            Historial de movimientos
+          </button>
+        </div>
+        @if (auth.canManageInventory()) {
+          <button
+            class="quiet"
+            (click)="modal = 'category'; error = ''"
+            >
+            + Categoría
+          </button>
+        }
+      </div>
+      @if (loading) {
+        <p class="loading" role="status">Cargando inventario…</p>
+      }
+      @if (tab === 'products') {
+        <div class="tools">
+          <input
+            class="form-control search"
+            [ngModel]="query()" (ngModelChange)="query.set($event)"
+            placeholder="Buscar por nombre, SKU o categoría"
+            aria-label="Buscar productos"
+            /><label class="checkbox"
+            ><input type="checkbox" [ngModel]="onlyLow()" (ngModelChange)="onlyLow.set($event)" /> Solo stock
+            bajo</label
+            ><span class="muted">{{ filtered().length }} productos</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Producto / SKU</th>
+                  <th>Categoría</th>
+                  <th>Precio</th>
+                  <th>Stock / mínimo</th>
+                  <th>Estado</th>
+                  @if (auth.canManageInventory()) {
+                    <th>Acciones</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (p of filtered(); track p.id) {
+                  <tr>
+                    <td>
+                      <strong>{{ p.name }}</strong
+                        ><small>{{ p.sku }}</small>
+                      </td>
+                      <td>{{ p.categoryName }}</td>
+                      <td>{{ p.price | number: "1.2-2" }} Bs</td>
+                      <td>
+                        <span [class.low]="p.stock <= p.minStock">{{ p.stock }}</span>
+                        <span class="muted">/ {{ p.minStock }}</span>
+                      </td>
+                      <td>
+                        <span class="badge" [class.inactive]="!p.active">{{
+                          p.active ? "Activo" : "Inactivo"
+                        }}</span>
+                      </td>
+                      @if (auth.canManageInventory()) {
+                        <td class="actions">
+                          <button class="quiet" (click)="openProduct(p)">Editar</button
+                            ><button
+                            class="quiet accent"
+                            (click)="openMovement(p)"
+                            [disabled]="!p.active"
+                            >
+                          Movimiento</button
+                          ><button class="quiet" [disabled]="saving" (click)="toggle(p)">
+                          {{ p.active ? "Desactivar" : "Activar" }}
+                        </button>
+                      </td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          @if (!loading && filtered().length === 0) {
+            <div class="empty">
+              <div class="empty-icon">◇</div>
+              <h2>
+                {{
+                products().length
+                ? "No hay coincidencias"
+                : "Tu catálogo empieza aquí"
+                }}
+              </h2>
+              <p>
+                {{
+                products().length
+                ? "Prueba otro nombre o cambia los filtros."
+                : "Añade tu primer producto y registra una entrada para comenzar."
+                }}
+              </p>
+              @if (!products().length && auth.canManageInventory()) {
+                <button
+                  class="btn-sakura"
+                  (click)="openProduct()"
+                  >
+                  Crear primer producto
+                </button>
+              }
+            </div>
+          }
+        }
+        @if (tab === 'movements') {
+          <div class="tools">
+            <p class="muted">
+              Trazabilidad de entradas y salidas · 50 movimientos por página
+            </p>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Producto</th>
+                  <th>Tipo</th>
+                  <th>Cantidad</th>
+                  <th>Stock anterior → nuevo</th>
+                  <th>Motivo</th>
+                  <th>Responsable</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (m of movements; track m.id) {
+                  <tr>
+                    <td>{{ m.createdAt | date: "dd/MM/yyyy HH:mm" }}</td>
+                    <td>{{ m.productName }}</td>
+                    <td>
+                      <span class="badge" [class.out]="m.type === 'SALIDA'">{{
+                        m.type
+                      }}</span>
+                    </td>
+                    <td>{{ m.quantity }}</td>
+                    <td>{{ m.previousStock }} → {{ m.newStock }}</td>
+                    <td>{{ m.reason }}</td>
+                    <td>{{ m.actorName }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+          @if (!loading && !movements.length) {
+            <p class="empty">
+              Todavía no hay movimientos en esta página.
+            </p>
+          }
+          <div class="pagination">
+            <button
+              class="quiet"
+              [disabled]="page === 0 || loading"
+              (click)="changePage(-1)"
+              >
+              Anterior</button
+              ><span>Página {{ page + 1 }}</span
+              ><button
+              class="quiet"
+              [disabled]="movements.length < 50 || loading"
+              (click)="changePage(1)"
+              >
+              Siguiente
+            </button>
+          </div>
+        }
+      </section>
+    </main>
+    @if (modal) {
+      <div class="modal-overlay" (click)="close()">
+        <section
+          class="dialog"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="dialog-title"
+          (click)="$event.stopPropagation()"
+          (keydown.escape)="close()"
+          >
+          <button
+            class="close"
+            aria-label="Cerrar"
+            (click)="close()"
+            [disabled]="saving"
+            >
+            ×
+          </button>
+          <h2 id="dialog-title">
+            {{
+            modal === "product"
+            ? editingId
+            ? "Editar producto"
+            : "Nuevo producto"
+            : modal === "movement"
+            ? "Registrar movimiento"
+            : "Nueva categoría"
+            }}
+          </h2>
+          @if (error) {
+            <div class="notice error" role="alert">{{ error }}</div>
+          }
+          @if (modal === 'product') {
+            <form
+              (ngSubmit)="saveProduct(productForm.valid === true)"
+              #productForm="ngForm"
+              >
+              <label
+                >SKU<input
+                class="form-control"
+                name="sku"
+                [(ngModel)]="form.sku"
+                required
+                maxlength="50"
+                pattern="[A-Za-z0-9_-]+"
+                placeholder="SAK-001" /></label
+                ><label
+                >Nombre<input
+                class="form-control"
+                name="name"
+                [(ngModel)]="form.name"
+                required
+                maxlength="150" /></label
+                ><label
+                >Categoría<select
+                class="form-control"
+                name="category"
+                [(ngModel)]="form.categoryId"
+                required
+                >
+                <option [ngValue]="0" disabled>Selecciona una categoría</option>
+                @for (c of categories; track c.id) {
+                  <option [ngValue]="c.id">
+                    {{ c.name }}
+                  </option>
+                }
+              </select></label
+              >
+              @if (!categories.length) {
+                <p class="muted">No hay categorías activas. Cierra este formulario y pulsa «+ Categoría».</p>
+              }
+              <div class="form-row">
+                <label
+                  >Precio de venta (Bs)<input
+                  class="form-control"
+                  type="number"
+                  name="price"
+                  [(ngModel)]="form.price"
+                  required
+                  min="0"
+                  max="9999999999.99"
+                  step="0.01" /></label
+                  ><label
+                  >Stock mínimo<input
+                  class="form-control"
+                  type="number"
+                  name="minStock"
+                  [(ngModel)]="form.minStock"
+                  required
+                  min="30"
+                  step="1"
+                /></label>
+              </div>
+              <p class="muted">
+                Las existencias se actualizan registrando entradas y salidas.
+              </p>
+              <button
+                class="btn-sakura wide"
+                [disabled]="saving || productForm.invalid || form.categoryId <= 0"
+                >
+                {{ saving ? "Guardando…" : "Guardar producto" }}
+              </button>
+            </form>
+          }
+          @if (modal === 'movement') {
+            <form
+              (ngSubmit)="saveMovement(movementForm.valid === true)"
+              #movementForm="ngForm"
+              >
+              <p class="muted">
+                {{ selected?.name }} · Stock actual: {{ selected?.stock }}
+              </p>
+              <label
+                >Tipo<select
+                class="form-control"
+                name="type"
+                [(ngModel)]="movement.type"
+                >
+                <option value="ENTRADA">Entrada de mercadería</option>
+                <option value="SALIDA">Salida de mercadería</option>
+              </select></label
+              ><label
+              >Cantidad<input
+              class="form-control"
+              type="number"
+              name="quantity"
+              [(ngModel)]="movement.quantity"
+              required
+              min="1"
+              step="1"
+          [max]="
+            movement.type === 'SALIDA' ? (selected?.stock ?? 0) : 2147483647
+          " /></label
+              ><label
+              >Motivo<textarea
+              class="form-control"
+              name="reason"
+              [(ngModel)]="movement.reason"
+              required
+              maxlength="250"
+              rows="3"
+              placeholder="Ej. Reposición del proveedor"
+            ></textarea></label
+            ><button
+            class="btn-sakura wide"
+            [disabled]="saving || movementForm.invalid"
+            >
+            {{ saving ? "Registrando…" : "Confirmar movimiento" }}
+          </button>
+        </form>
+      }
+      @if (modal === 'category') {
+        <form
+          (ngSubmit)="saveCategory(categoryForm.valid === true)"
+          #categoryForm="ngForm"
+          >
+          <label
+            >Nombre<input
+            class="form-control"
+            name="name"
+            [(ngModel)]="categoryName"
+            required
+            maxlength="100"
+            placeholder="Ej. Accesorios" /></label
+            ><button
+            class="btn-sakura wide"
+            [disabled]="saving || categoryForm.invalid"
+            >
+            {{ saving ? "Guardando…" : "Crear categoría" }}
+          </button>
+        </form>
+      }
+    </section>
+  </div>
+}
+@if (statusProduct; as product) {
+  <app-confirmation-dialog
+    [title]="product.active ? 'Desactivar producto' : 'Activar producto'"
+    [message]="'¿Deseas ' + (product.active ? 'desactivar ' : 'activar ') + product.name + '?'"
+    [confirmLabel]="product.active ? 'Desactivar' : 'Activar'"
+    (confirmed)="confirmStatus()"
+    (cancelled)="statusProduct = null" />
+}

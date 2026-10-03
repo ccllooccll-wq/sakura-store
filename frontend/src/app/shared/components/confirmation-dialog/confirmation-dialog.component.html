@@ -1,0 +1,8 @@
+<dialog #dialog class="confirmation" aria-labelledby="confirmation-title" aria-describedby="confirmation-message" (cancel)="cancel($event)">
+  <h2 id="confirmation-title">{{ title }}</h2>
+  <p id="confirmation-message">{{ message }}</p>
+  <div class="confirmation-actions">
+    <button type="button" class="btn-secondary" autofocus (click)="cancelled.emit()">Cancelar</button>
+    <button type="button" class="btn-sakura" (click)="confirmed.emit()">{{ confirmLabel }}</button>
+  </div>
+</dialog>

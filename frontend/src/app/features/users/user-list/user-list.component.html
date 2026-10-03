@@ -1,0 +1,266 @@
+
+<main class="container">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div>
+      <h1>Gestión de Usuarios</h1>
+      <p class="subtitle">
+        Administra los usuarios, asignación de roles y accesos del sistema
+        Sakura Store
+      </p>
+    </div>
+    <button class="btn-sakura" (click)="openCreateModal()">
+      <i class="fa-solid fa-user-plus"></i>
+      <span>Nuevo Usuario</span>
+    </button>
+  </div>
+
+  <!-- Feedback Alerts -->
+  @if (successMessage) {
+    <div class="alert alert-success">
+      <i class="fa-solid fa-circle-check"></i>
+      <span>{{ successMessage }}</span>
+    </div>
+  }
+  @if (errorMessage) {
+    <div class="alert alert-error">
+      <i class="fa-solid fa-circle-exclamation"></i>
+      <span>{{ errorMessage }}</span>
+    </div>
+  }
+
+  <!-- Filters & Stats Card -->
+  <div class="glass-card filter-card">
+    <div class="search-box">
+      <i class="fa-solid fa-magnifying-glass search-icon"></i>
+      <input
+        type="text"
+        class="form-control"
+        placeholder="Buscar por usuario, nombre o correo..."
+        [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)"
+        />
+    </div>
+    <div class="user-count">
+      <span
+        >Total: <strong>{{ filteredUsers().length }}</strong> usuarios</span
+        >
+      </div>
+    </div>
+
+    <!-- Users Table Card -->
+    <div class="glass-card table-card">
+      <table class="sakura-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Usuario</th>
+            <th>Nombre Completo</th>
+            <th>Correo Electrónico</th>
+            <th>Rol</th>
+            <th>Estado</th>
+            <th class="text-right">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (user of filteredUsers(); track user.id) {
+            <tr>
+              <td class="id-cell">#{{ user.id }}</td>
+              <td class="username-cell">
+                <i class="fa-solid fa-user-circle user-avatar"></i>
+                <strong>{{ user.username }}</strong>
+              </td>
+              <td>{{ user.fullName }}</td>
+              <td class="email-cell">{{ user.email }}</td>
+              <td>
+                <span class="badge" [ngClass]="getRoleBadgeClass(user.roleName)">
+                  {{ getRoleDisplayName(user.roleName) }}
+                </span>
+              </td>
+              <td>
+                <span
+                  class="badge"
+                  [ngClass]="user.active ? 'badge-active' : 'badge-inactive'"
+                  >
+                  {{ user.active ? "ACTIVO" : "INACTIVO" }}
+                </span>
+              </td>
+              <td class="actions-cell text-right">
+                <button
+                  class="btn-action btn-edit"
+                  (click)="openEditModal(user)"
+                  title="Editar usuario"
+                  >
+                  <i class="fa-solid fa-pen"></i>
+                </button>
+                <button
+                  class="btn-action"
+                  [ngClass]="user.active ? 'btn-deactivate' : 'btn-activate'"
+                  (click)="toggleStatus(user)"
+                  [title]="user.active ? 'Desactivar usuario' : 'Activar usuario'"
+                  >
+                  <i
+                [class]="
+                  user.active
+                    ? 'fa-solid fa-user-slash'
+                    : 'fa-solid fa-user-check'
+                "
+                  ></i>
+                </button>
+                <button
+                  class="btn-action btn-delete"
+                  (click)="deleteUser(user)"
+                  title="Eliminar usuario"
+                  >
+                  <i class="fa-solid fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+          }
+          @if (filteredUsers().length === 0) {
+            <tr>
+              <td colspan="7" class="empty-state">
+                <i class="fa-solid fa-folder-open empty-icon"></i>
+                <p>No se encontraron usuarios registrados.</p>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Modal Form for Create / Edit -->
+  @if (showModal) {
+    <div class="modal-backdrop">
+      <div class="glass-card modal-content">
+        <div class="modal-header">
+          <h3>
+            {{ isEditMode ? "Editar Usuario" : "Nuevo Usuario Sakura Store" }}
+          </h3>
+          <button class="btn-close" (click)="closeModal()">&times;</button>
+        </div>
+        <form (ngSubmit)="saveUser(userForm.valid === true)" #userForm="ngForm">
+          <div class="modal-body">
+            @if (errorMessage) {
+              <p class="alert alert-error" role="alert">{{ errorMessage }}</p>
+            }
+            <!-- Username (Only editable when creating) -->
+            @if (!isEditMode) {
+              <div class="form-group">
+                <label>Nombre de Usuario *</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  [(ngModel)]="formData.username"
+                  name="username"
+                  minlength="3"
+                  maxlength="50"
+                  pattern="[A-Za-z0-9_.-]+"
+                  required
+                  placeholder="Ej. mcalle"
+                  />
+              </div>
+            }
+            <div class="form-group">
+              <label>Nombre Completo *</label>
+              <input
+                type="text"
+                class="form-control"
+                [(ngModel)]="formData.fullName"
+                name="fullName"
+                maxlength="100"
+                pattern=".*\S.*"
+                required
+                placeholder="Ej. Marcelo Calle"
+                />
+            </div>
+            <div class="form-group">
+              <label>Correo Electrónico *</label>
+              <input
+                type="email"
+                class="form-control"
+                [(ngModel)]="formData.email"
+                name="email"
+                maxlength="100"
+                email
+                required
+                placeholder="ejemplo@sakurastore.com"
+                />
+            </div>
+            <!-- Password (Only required on creation) -->
+            @if (!isEditMode) {
+              <div class="form-group">
+                <label>Contraseña *</label>
+                <input
+                  type="password"
+                  class="form-control"
+                  [(ngModel)]="formData.password"
+                  name="password"
+                  minlength="12"
+                  maxlength="72"
+                  autocomplete="new-password"
+                  required
+                  placeholder="••••••••"
+                  />
+              </div>
+            }
+            <div class="form-group">
+              <label>Rol de Usuario *</label>
+              <select
+                class="form-control"
+                [(ngModel)]="formData.roleId"
+                name="roleId"
+                [disabled]="rolesLoading || !roles().length || (isEditMode && !isAdmin)"
+                required
+                >
+                <option [ngValue]="0" disabled>-- Selecciona un Rol --</option>
+                @for (role of roles(); track role.id) {
+                  <option [ngValue]="role.id">
+                    {{ getRoleDisplayName(role.name) }}{{ role.description ? ' (' + role.description + ')' : '' }}
+                  </option>
+                }
+              </select>
+              @if (!rolesLoading && !roles().length) {
+                <p class="role-warning" role="alert">No hay roles disponibles. <button type="button" class="btn-secondary" (click)="loadRoles()">Reintentar</button></p>
+              }
+              @if (isEditMode && !isAdmin) {
+                <small class="role-warning">
+                  <i class="fa-solid fa-lock"></i> Solo un Administrador puede cambiar
+                  el rol.
+                </small>
+              }
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn-secondary" (click)="closeModal()">
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="btn-sakura"
+              [disabled]="!userForm.valid || saving || rolesLoading || formData.roleId <= 0 || !roles().length"
+              >
+              @if (!saving) {
+                <span>{{
+                  isEditMode ? "Guardar Cambios" : "Crear Usuario"
+                }}</span>
+              }
+              @if (saving) {
+                <span
+                  ><i class="fa-solid fa-spinner fa-spin"></i> Guardando...</span
+                  >
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    }
+@if (userToDelete; as user) {
+  <app-confirmation-dialog
+    title="Eliminar usuario"
+    [message]="'¿Deseas eliminar a ' + user.username + '? Esta acción no se puede deshacer.'"
+    confirmLabel="Eliminar"
+    (confirmed)="confirmDelete()"
+    (cancelled)="userToDelete = null" />
+}
