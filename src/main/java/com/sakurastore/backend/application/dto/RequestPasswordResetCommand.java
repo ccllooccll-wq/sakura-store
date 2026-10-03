@@ -5,22 +5,21 @@ import jakarta.validation.constraints.NotBlank;
 
 public class RequestPasswordResetCommand {
 
-    @NotBlank(message = "El correo electrónico es obligatorio.")
-    @Email(message = "Formato de correo electrónico inválido.")
-    private String email;
+  @NotBlank(message = "El correo electrónico es obligatorio.")
+  @Email(message = "Formato de correo electrónico inválido.")
+  private String email;
 
-    public RequestPasswordResetCommand() {
-    }
+  public RequestPasswordResetCommand() {}
 
-    public RequestPasswordResetCommand(String email) {
-        this.email = email;
-    }
+  public RequestPasswordResetCommand(String email) {
+    this.email = email;
+  }
 
-    public String getEmail() {
-        return email;
-    }
+  public String getEmail() {
+    return email;
+  }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+  public void setEmail(String email) {
+    this.email = email;
+  }
 }

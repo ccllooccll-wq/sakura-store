@@ -1,40 +1,48 @@
 package com.sakurastore.backend.application.dto;
 
+import jakarta.validation.constraints.*;
+
 public class UpdateUserCommand {
-    private String fullName;
-    private String email;
-    private Long roleId;
+  @NotBlank
+  @Size(max = 100)
+  private String fullName;
 
-    public UpdateUserCommand() {
-    }
+  @NotBlank
+  @Email
+  @Size(max = 100)
+  private String email;
 
-    public UpdateUserCommand(String fullName, String email, Long roleId) {
-        this.fullName = fullName;
-        this.email = email;
-        this.roleId = roleId;
-    }
+  @NotNull @Positive private Long roleId;
 
-    public String getFullName() {
-        return fullName;
-    }
+  public UpdateUserCommand() {}
 
-    public void setFullName(String fullName) {
-        this.fullName = fullName;
-    }
+  public UpdateUserCommand(String fullName, String email, Long roleId) {
+    this.fullName = fullName;
+    this.email = email;
+    this.roleId = roleId;
+  }
 
-    public String getEmail() {
-        return email;
-    }
+  public String getFullName() {
+    return fullName;
+  }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+  public void setFullName(String fullName) {
+    this.fullName = fullName;
+  }
 
-    public Long getRoleId() {
-        return roleId;
-    }
+  public String getEmail() {
+    return email;
+  }
 
-    public void setRoleId(Long roleId) {
-        this.roleId = roleId;
-    }
+  public void setEmail(String email) {
+    this.email = email;
+  }
+
+  public Long getRoleId() {
+    return roleId;
+  }
+
+  public void setRoleId(Long roleId) {
+    this.roleId = roleId;
+  }
 }

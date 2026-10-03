@@ -1,55 +1,97 @@
 package com.sakurastore.backend.infrastructure.config;
 
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import com.sakurastore.backend.infrastructure.security.*;
+import org.springframework.context.annotation.*;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.Arrays;
-import java.util.List;
+import org.springframework.security.web.*;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
+import org.springframework.security.web.context.*;
+import org.springframework.security.web.csrf.*;
 
 @Configuration
-@EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
+  @Bean
+  public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder(12);
+  }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+  @Bean
+  public SecurityContextRepository contextRepository() {
+    return new HttpSessionSecurityContextRepository();
+  }
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/users/**").permitAll()
-                .anyRequest().permitAll()
-            );
+  @Bean
+  public SecurityFilterChain filterChain(
+      HttpSecurity http,
+      SessionUserFilter users,
+      AuthRateLimitFilter rate,
+      SecurityContextRepository contexts)
+      throws Exception {
+    http.securityContext(c -> c.securityContextRepository(contexts).requireExplicitSave(true))
+        .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+        .csrf(c -> c.csrfTokenRepository(new HttpSessionCsrfTokenRepository()))
+        .requestCache(c -> c.disable())
+        .formLogin(c -> c.disable())
+        .httpBasic(c -> c.disable())
+        .authorizeHttpRequests(
+            a ->
+                a.requestMatchers("/api/auth/**", "/api/usuarios/registro", "/api/users/registro")
+                    .permitAll()
+                    .requestMatchers("/api/users/**", "/api/roles/**")
+                    .hasRole("ADMIN")
+                    .requestMatchers(HttpMethod.GET, "/api/inventory/**")
+                    .authenticated()
+                    .requestMatchers("/api/inventory/**")
+                    .hasRole("ADMIN")
+                    .anyRequest()
+                    .denyAll())
+        .exceptionHandling(
+            e ->
+                e.authenticationEntryPoint(
+                        (req, res, ex) -> {
+                          res.setStatus(401);
+                          res.setContentType("application/json");
+                          res.getWriter().write("{\"message\":\"Inicia sesión para continuar.\"}");
+                        })
+                    .accessDeniedHandler(
+                        (req, res, ex) -> {
+                          res.setStatus(403);
+                          res.setContentType("application/json");
+                          res.getWriter()
+                              .write(
+                                  "{\"message\":\"No tienes permiso o tu sesión de formulario"
+                                      + " venció. Recarga la página.\"}");
+                        }))
+        .logout(
+            l ->
+                l.logoutUrl("/api/auth/logout")
+                    .invalidateHttpSession(true)
+                    .deleteCookies("SAKURA_SESSION")
+                    .logoutSuccessHandler((req, res, auth) -> res.setStatus(204)))
+        .addFilterBefore(users, AnonymousAuthenticationFilter.class)
+        .addFilterBefore(rate, SessionUserFilter.class);
+    return http.build();
+  }
 
-        return http.build();
-    }
+  @Bean
+  public org.springframework.boot.web.servlet.FilterRegistrationBean<SessionUserFilter>
+      noAutoUserFilter(SessionUserFilter f) {
+    var r = new org.springframework.boot.web.servlet.FilterRegistrationBean<>(f);
+    r.setEnabled(false);
+    return r;
+  }
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of("*"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With"));
-        configuration.setAllowCredentials(true);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
-    }
+  @Bean
+  public org.springframework.boot.web.servlet.FilterRegistrationBean<AuthRateLimitFilter>
+      noAutoRateFilter(AuthRateLimitFilter f) {
+    var r = new org.springframework.boot.web.servlet.FilterRegistrationBean<>(f);
+    r.setEnabled(false);
+    return r;
+  }
 }

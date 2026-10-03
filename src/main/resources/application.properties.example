@@ -1,12 +1,24 @@
-# Copia este archivo como application.properties (o application-local.properties)
-# y ajusta los valores. application-local.properties ya esta ignorado por Git.
+server.port=${PORT:8080}
 
-spring.datasource.url=jdbc:postgresql://localhost:5432/sakura_store
-spring.datasource.username=postgres
-spring.datasource.password=postgres
+spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:5432/sakura_store}
+spring.datasource.username=${DB_USERNAME:postgres}
+spring.datasource.password=${DB_PASSWORD:}
 
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.hibernate.ddl-auto=none
+spring.jpa.open-in-view=false
+spring.jpa.show-sql=false
 
-server.port=8080
+spring.flyway.enabled=false
+
+server.servlet.session.cookie.name=SAKURA_SESSION
+server.servlet.session.cookie.http-only=true
+server.servlet.session.cookie.same-site=lax
+server.servlet.session.cookie.secure=${COOKIE_SECURE:false}
+server.servlet.session.timeout=30m
+
+server.error.include-message=never
+
+app.gmail.client-id=${GMAIL_CLIENT_ID:}
+app.gmail.client-secret=${GMAIL_CLIENT_SECRET:}
+app.gmail.refresh-token=${GMAIL_REFRESH_TOKEN:}
+app.gmail.from=${GMAIL_FROM:}

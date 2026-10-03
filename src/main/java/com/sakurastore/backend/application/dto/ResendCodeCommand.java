@@ -5,22 +5,21 @@ import jakarta.validation.constraints.NotBlank;
 
 public class ResendCodeCommand {
 
-    @NotBlank(message = "El correo electrónico es obligatorio.")
-    @Email(message = "El formato del correo electrónico no es válido.")
-    private String email;
+  @NotBlank(message = "El correo electrónico es obligatorio.")
+  @Email(message = "El formato del correo electrónico no es válido.")
+  private String email;
 
-    public ResendCodeCommand() {
-    }
+  public ResendCodeCommand() {}
 
-    public ResendCodeCommand(String email) {
-        this.email = email;
-    }
+  public ResendCodeCommand(String email) {
+    this.email = email;
+  }
 
-    public String getEmail() {
-        return email;
-    }
+  public String getEmail() {
+    return email;
+  }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+  public void setEmail(String email) {
+    this.email = email;
+  }
 }
