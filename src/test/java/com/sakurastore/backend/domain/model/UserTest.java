@@ -55,7 +55,7 @@ class UserTest {
   @Test
   @DisplayName("Debe cambiar el estado del usuario mediante activar y desactivar")
   void shouldToggleUserStatus() {
-    Role role = new Role(1L, RoleEnum.ROLE_VENDEDOR, "Proveedor");
+    Role role = new Role(1L, RoleEnum.ROLE_CLIENTE, "Cliente");
     User user =
         User.createNewUser(
             "almacen1", "Jose Almacen", "almacen@sakurastore.com", "Password123!", role);

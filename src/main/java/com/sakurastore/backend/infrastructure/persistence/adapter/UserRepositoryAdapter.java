@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class UserRepositoryAdapter implements UserRepositoryPort {
   private final SpringDataUserRepository springDataUserRepository;
+  @jakarta.persistence.PersistenceContext private jakarta.persistence.EntityManager entityManager;
 
   public UserRepositoryAdapter(SpringDataUserRepository springDataUserRepository) {
     this.springDataUserRepository = springDataUserRepository;
@@ -28,6 +29,17 @@ public class UserRepositoryAdapter implements UserRepositoryPort {
   @Override
   public Optional<User> findById(Long id) {
     return springDataUserRepository.findById(id).map(UserPersistenceMapper::toDomainUser);
+  }
+
+  @Override
+  public Optional<User> findByIdForUpdate(Long id) {
+    return springDataUserRepository
+        .findLockedById(id)
+        .map(
+            entity -> {
+              entityManager.refresh(entity, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+              return UserPersistenceMapper.toDomainUser(entity);
+            });
   }
 
   @Override

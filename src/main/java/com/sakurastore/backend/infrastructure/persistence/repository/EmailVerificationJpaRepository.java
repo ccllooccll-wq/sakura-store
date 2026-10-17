@@ -3,9 +3,6 @@ package com.sakurastore.backend.infrastructure.persistence.repository;
 import com.sakurastore.backend.infrastructure.persistence.entity.EmailVerificationJpaEntity;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -15,9 +12,10 @@ public interface EmailVerificationJpaRepository
   Optional<EmailVerificationJpaEntity> findFirstByUserIdAndUsadoFalseOrderByCreatedAtDesc(
       Long userId);
 
-  @Modifying
-  @Query(
-      "UPDATE EmailVerificationJpaEntity e SET e.usado = true WHERE e.userId = :userId AND e.usado"
-          + " = false")
-  void invalidateAllPendingByUserId(@Param("userId") Long userId);
+  java.util.List<EmailVerificationJpaEntity> findAllByUserIdAndUsadoFalse(Long userId);
+
+  @org.springframework.transaction.annotation.Transactional
+  default void invalidateAllPendingByUserId(Long userId) {
+    findAllByUserIdAndUsadoFalse(userId).forEach(pending -> pending.setUsado(true));
+  }
 }

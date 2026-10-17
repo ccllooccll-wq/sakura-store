@@ -4,10 +4,11 @@ import com.sakurastore.backend.application.dto.*;
 import com.sakurastore.backend.domain.exception.DomainException;
 import com.sakurastore.backend.domain.model.*;
 import com.sakurastore.backend.domain.port.*;
+import com.sakurastore.backend.infrastructure.persistence.entity.AuthChallengeJpaEntity;
+import com.sakurastore.backend.infrastructure.persistence.repository.AuthChallengeJpaRepository;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.*;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,31 +18,22 @@ import org.springframework.transaction.annotation.Transactional;
 public class SessionAuthService {
   private final UserRepositoryPort users;
   private final RoleRepositoryPort roles;
-  private final JdbcTemplate db;
+  private final AuthChallengeJpaRepository challenges;
   private final PasswordEncoder encoder;
   private final EmailSenderPort mail;
   private final SecureRandom random = new SecureRandom();
 
   public record Challenge(UUID id, Long userId, String email, String purpose) {}
 
-  private record Stored(
-      UUID id,
-      Long userId,
-      String hash,
-      String purpose,
-      int attempts,
-      boolean used,
-      LocalDateTime expires) {}
-
   public SessionAuthService(
       UserRepositoryPort users,
       RoleRepositoryPort roles,
-      JdbcTemplate db,
+      AuthChallengeJpaRepository challenges,
       PasswordEncoder encoder,
       EmailSenderPort mail) {
     this.users = users;
     this.roles = roles;
-    this.db = db;
+    this.challenges = challenges;
     this.encoder = encoder;
     this.mail = mail;
   }
@@ -59,14 +51,15 @@ public class SessionAuthService {
   }
 
   public Challenge register(RegisterUserCommand command) {
-    String email = command.getEmail().trim().toLowerCase(Locale.ROOT),
-        username = command.getUsername().trim();
+    String email = command.getEmail().trim().toLowerCase(Locale.ROOT);
+    String username = command.getUsername().trim();
     if (users.existsByEmail(email) || users.existsByUsername(username))
       throw new DomainException("No se pudo registrar. Revisa los datos o recupera tu cuenta.");
+    // El rol público lo decide el servidor. No se recibe un rol del navegador.
     var role =
         roles
-            .findByName(RoleEnum.ROLE_VENDEDOR)
-            .orElseThrow(() -> new DomainException("No está configurado el rol de registro."));
+            .findByName(RoleEnum.ROLE_CLIENTE)
+            .orElseThrow(() -> new DomainException("No está configurado el rol de cliente."));
     var user =
         users.save(
             User.createNewUser(
@@ -75,103 +68,94 @@ public class SessionAuthService {
   }
 
   public Challenge requestReset(String email) {
-    var user = users.findByEmail(email.trim().toLowerCase(Locale.ROOT));
-    return user.filter(User::isActive).map(u -> issue(u, "RESET")).orElse(null);
+    return users
+        .findByEmail(email.trim().toLowerCase(Locale.ROOT))
+        .filter(User::isActive)
+        .map(user -> issue(user, "RESET"))
+        .orElse(null);
   }
 
   public Challenge resend(UUID id, String email) {
     var old = load(id);
     var user =
         users
-            .findById(old.userId())
+            .findById(old.getUserId())
             .orElseThrow(() -> new DomainException("Reinicia el proceso de acceso."));
-    if (!user.isActive() || !user.getEmail().equalsIgnoreCase(email.trim()) || old.used())
+    if (!user.isActive() || !user.getEmail().equalsIgnoreCase(email.trim()) || old.isUsed())
       throw new DomainException("Reinicia el proceso de acceso.");
-    return issue(user, old.purpose());
+    return issue(user, old.getPurpose());
   }
 
   private Challenge issue(User user, String purpose) {
-    db.queryForObject(
-            "SELECT id_usuario FROM usuario WHERE id_usuario = ? FOR UPDATE",
-            Long.class,
-            user.getId()
-    );
-    Integer recent =
-        db.queryForObject(
-            "select count(*) from auth_challenges where user_id=? and"
-                + " created_at>current_timestamp-interval '60 seconds'",
-            Integer.class,
-            user.getId());
-    Integer hourly =
-        db.queryForObject(
-            "select count(*) from auth_challenges where user_id=? and"
-                + " created_at>current_timestamp-interval '1 hour'",
-            Integer.class,
-            user.getId());
+    // Todos los cambios de códigos de una cuenta toman primero este mismo bloqueo.
+    var current =
+        users
+            .findByIdForUpdate(user.getId())
+            .orElseThrow(() -> new DomainException("La cuenta no está disponible."));
+    if (!current.isActive()) throw new DomainException("La cuenta no está disponible.");
+    LocalDateTime now = LocalDateTime.now();
+    long recent = challenges.countByUserIdAndCreatedAtAfter(user.getId(), now.minusSeconds(60));
+    long hourly = challenges.countByUserIdAndCreatedAtAfter(user.getId(), now.minusHours(1));
     if (recent > 0 || hourly >= 10)
       throw new DomainException(
           "Espera antes de solicitar otro código. Máximo 10 envíos por hora.");
+    challenges
+        .findAllByUserIdAndPurposeAndUsedFalse(user.getId(), purpose)
+        .forEach(challenge -> challenge.setUsed(true));
     String code = String.format("%06d", random.nextInt(1000000));
-    UUID id = UUID.randomUUID();
-    db.update(
-        "update auth_challenges set used=true where user_id=? and purpose=? and used=false",
-        user.getId(),
-        purpose);
-    db.update(
-        "insert into auth_challenges(id,user_id,code_hash,purpose,expires_at) values(?,?,?,?,?)",
-        id,
-        user.getId(),
-        encoder.encode(code),
-        purpose,
-        LocalDateTime.now().plusMinutes(10));
-    mail.sendVerificationCode(user.getEmail(), user.getFullName(), code);
-    return new Challenge(id, user.getId(), user.getEmail(), purpose);
+    var challenge = new AuthChallengeJpaEntity();
+    challenge.setId(UUID.randomUUID());
+    challenge.setUserId(user.getId());
+    challenge.setCodeHash(encoder.encode(code));
+    challenge.setPurpose(purpose);
+    challenge.setCreatedAt(now);
+    challenge.setExpiresAt(now.plusMinutes(10));
+    challenges.saveAndFlush(challenge);
+    mail.sendVerificationCode(current.getEmail(), current.getFullName(), code);
+    return new Challenge(challenge.getId(), current.getId(), current.getEmail(), purpose);
   }
 
-  private Stored load(UUID id) {
+  private AuthChallengeJpaEntity load(UUID id) {
     if (id == null)
       throw new DomainException(
           "Inicia el proceso en este navegador antes de introducir el código.");
-    return db
-        .query(
-            "select * from auth_challenges where id=? for update",
-            (rs, n) ->
-                new Stored(
-                    rs.getObject("id", UUID.class),
-                    rs.getLong("user_id"),
-                    rs.getString("code_hash"),
-                    rs.getString("purpose"),
-                    rs.getInt("attempts"),
-                    rs.getBoolean("used"),
-                    rs.getTimestamp("expires_at").toLocalDateTime()),
-            id)
-        .stream()
-        .findFirst()
+    var preview =
+        challenges
+            .findOwnerById(id)
+            .orElseThrow(() -> new DomainException("Código no disponible. Reinicia el proceso."));
+    // Mismo orden de bloqueo que issue(): usuario y después desafío.
+    users
+        .findByIdForUpdate(preview.getUserId())
+        .orElseThrow(() -> new DomainException("La cuenta no está disponible."));
+    return challenges
+        .findLockedById(id)
         .orElseThrow(() -> new DomainException("Código no disponible. Reinicia el proceso."));
   }
 
   public User verify(UUID id, String email, String code, boolean reset, String newPassword) {
     var challenge = load(id);
-    if (reset != challenge.purpose().equals("RESET"))
+    if (reset != challenge.getPurpose().equals("RESET"))
       throw new DomainException("El código no corresponde a esta operación.");
-    if (challenge.used()
-        || challenge.attempts() >= 5
-        || challenge.expires().isBefore(LocalDateTime.now()))
+    if (challenge.isUsed()
+        || challenge.getAttempts() >= 5
+        || !challenge.getExpiresAt().isAfter(LocalDateTime.now()))
       throw new DomainException(
           "Código vencido, utilizado o sin intentos disponibles. Solicita otro.");
-    db.update("update auth_challenges set attempts=attempts+1 where id=?", id);
+    challenge.setAttempts(challenge.getAttempts() + 1);
     var user =
         users
-            .findById(challenge.userId())
+            .findById(challenge.getUserId())
             .orElseThrow(() -> new DomainException("Código inválido."));
     if (!user.isActive()
         || !user.getEmail().equalsIgnoreCase(email.trim())
-        || !encoder.matches(code, challenge.hash()))
+        || !encoder.matches(code, challenge.getCodeHash()))
       throw new DomainException("Código incorrecto.");
-    db.update("update auth_challenges set used=true where id=?", id);
+    challenge.setUsed(true);
     if (reset) {
       user.changePassword(encoder.encode(newPassword));
-      db.update("update auth_challenges set used=true where user_id=?", user.getId());
+      challenges
+          .findAllByUserIdAndUsedFalse(user.getId())
+          .forEach(pending -> pending.setUsed(true));
     }
     user.markEmailAsVerified();
     return users.save(user);
