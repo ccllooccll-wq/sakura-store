@@ -37,14 +37,13 @@ public class UserJpaEntity {
   @Column(name = "email_verificado", nullable = false)
   private boolean emailVerified = false;
 
-  @Transient
+  @Column(name = "created_at", nullable = false, updatable = false)
   private LocalDateTime createdAt;
 
-  @Transient
+  @Column(name = "updated_at", nullable = false)
   private LocalDateTime updatedAt;
 
-  public UserJpaEntity() {
-  }
+  public UserJpaEntity() {}
 
   @PrePersist
   protected void onCreate() {

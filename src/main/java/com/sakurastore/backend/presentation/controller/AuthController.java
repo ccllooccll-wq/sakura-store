@@ -126,4 +126,3 @@ public class AuthController {
     return req.getSession(false) == null ? null : (UUID) req.getSession(false).getAttribute(name);
   }
 }
-// modificado por derik

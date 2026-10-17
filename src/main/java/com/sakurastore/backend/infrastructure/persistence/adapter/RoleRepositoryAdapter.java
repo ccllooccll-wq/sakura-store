@@ -13,11 +13,9 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class RoleRepositoryAdapter implements RoleRepositoryPort {
-
   private final SpringDataRoleRepository springDataRoleRepository;
 
-  public RoleRepositoryAdapter(
-          SpringDataRoleRepository springDataRoleRepository) {
+  public RoleRepositoryAdapter(SpringDataRoleRepository springDataRoleRepository) {
     this.springDataRoleRepository = springDataRoleRepository;
   }
 
@@ -30,27 +28,18 @@ public class RoleRepositoryAdapter implements RoleRepositoryPort {
 
   @Override
   public Optional<Role> findById(Long id) {
-    return springDataRoleRepository
-            .findById(id)
-            .map(UserPersistenceMapper::toDomainRole);
+    return springDataRoleRepository.findById(id).map(UserPersistenceMapper::toDomainRole);
   }
 
   @Override
   public Optional<Role> findByName(RoleEnum name) {
-    return springDataRoleRepository
-            .findByName(name)
-            .map(UserPersistenceMapper::toDomainRole);
+    return springDataRoleRepository.findByName(name).map(UserPersistenceMapper::toDomainRole);
   }
 
   @Override
   public List<Role> findAll() {
-    return springDataRoleRepository
-            .findAllByNameIn(
-                    List.of(
-                            RoleEnum.ROLE_ADMIN,
-                            RoleEnum.ROLE_VENDEDOR))
-            .stream()
-            .map(UserPersistenceMapper::toDomainRole)
-            .collect(Collectors.toList());
+    return springDataRoleRepository.findAll().stream()
+        .map(UserPersistenceMapper::toDomainRole)
+        .collect(Collectors.toList());
   }
 }

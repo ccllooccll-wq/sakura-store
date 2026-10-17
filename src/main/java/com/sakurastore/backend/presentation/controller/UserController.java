@@ -2,9 +2,11 @@ package com.sakurastore.backend.presentation.controller;
 
 import com.sakurastore.backend.application.dto.ApiResponseDto;
 import com.sakurastore.backend.application.dto.CreateUserCommand;
+import com.sakurastore.backend.application.dto.PageResponse;
 import com.sakurastore.backend.application.dto.UpdateUserCommand;
 import com.sakurastore.backend.application.dto.UserResponseDto;
 import com.sakurastore.backend.application.usecase.*;
+import com.sakurastore.backend.infrastructure.persistence.adapter.JpaUserSearch;
 import java.util.List;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
@@ -20,28 +22,66 @@ public class UserController {
   private final ListUsersUseCase listUsersUseCase;
   private final ToggleUserStatusUseCase toggleUserStatusUseCase;
   private final DeleteUserUseCase deleteUserUseCase;
+  private final JpaUserSearch search;
 
   public UserController(
       CreateUserUseCase createUserUseCase,
       UpdateUserUseCase updateUserUseCase,
       ListUsersUseCase listUsersUseCase,
       ToggleUserStatusUseCase toggleUserStatusUseCase,
-      DeleteUserUseCase deleteUserUseCase) {
+      DeleteUserUseCase deleteUserUseCase,
+      JpaUserSearch search) {
     this.createUserUseCase = createUserUseCase;
     this.updateUserUseCase = updateUserUseCase;
     this.listUsersUseCase = listUsersUseCase;
     this.toggleUserStatusUseCase = toggleUserStatusUseCase;
     this.deleteUserUseCase = deleteUserUseCase;
+    this.search = search;
   }
 
-  @GetMapping
+  @GetMapping(params = "!page")
   public ResponseEntity<List<UserResponseDto>> getAllUsers() {
     return ResponseEntity.ok(listUsersUseCase.execute());
+  }
+
+  @GetMapping(params = "page")
+  public PageResponse<UserResponseDto> page(
+      @RequestParam(required = false) String username,
+      @RequestParam(required = false) String fullName,
+      @RequestParam(required = false) String email,
+      @RequestParam(required = false) Long roleId,
+      @RequestParam(required = false) String status,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "10") int size,
+      @RequestParam(defaultValue = "id,desc") String sort) {
+    Boolean active = null;
+    if (status != null && !status.isBlank()) {
+      active = switch (status) {
+        case "ACTIVE" -> true;
+        case "INACTIVE" -> false;
+        default -> throw new com.sakurastore.backend.domain.exception.DomainException("Estado de usuario inválido.");
+      };
+    }
+    return search.search(null, username, fullName, email, null, active, page, size, sort, roleId);
   }
 
   @GetMapping("/{id}")
   public ResponseEntity<UserResponseDto> getUserById(@PathVariable Long id) {
     return ResponseEntity.ok(listUsersUseCase.findById(id));
+  }
+
+  @GetMapping("/page")
+  public PageResponse<UserResponseDto> search(
+      @RequestParam(required = false) Long id,
+      @RequestParam(required = false) String username,
+      @RequestParam(required = false) String fullName,
+      @RequestParam(required = false) String email,
+      @RequestParam(required = false) String role,
+      @RequestParam(required = false) Boolean active,
+      @RequestParam(defaultValue = "0") int page,
+      @RequestParam(defaultValue = "10") int size,
+      @RequestParam(defaultValue = "id,desc") String sort) {
+    return search.search(id, username, fullName, email, role, active, page, size, sort);
   }
 
   @PostMapping
@@ -75,4 +115,4 @@ public class UserController {
     ApiResponseDto response = deleteUserUseCase.execute(id);
     return ResponseEntity.ok(response);
   }
-// modificado por derik
+}

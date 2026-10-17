@@ -1,30 +1,36 @@
 package com.sakurastore.backend.application.port;
 
 import com.sakurastore.backend.application.dto.InventoryDtos.*;
+import com.sakurastore.backend.application.dto.PageResponse;
+import com.sakurastore.backend.application.dto.ProductFilter;
 import java.util.List;
 import java.util.Optional;
 
 public interface InventoryRepositoryPort {
-    List<Category> categories();
+  List<Category> categories();
 
-    Category createCategory(String name);
+  Category createCategory(String name);
 
-    List<Product> products(String query, boolean lowStock);
+  List<Product> products(String query, boolean lowStock);
 
-    Optional<Product> lockProduct(Long id);
+  PageResponse<Product> searchProducts(ProductFilter filter, int page, int size, String sort);
 
-    Product create(ProductCommand command);
+  InventorySummary summary();
 
-    Product update(Long id, ProductCommand command);
+  Optional<Product> lockProduct(Long id);
 
-    void setActive(Long id, boolean active);
+  Product create(ProductCommand command);
 
-    boolean categoryExists(Long id);
+  Product update(Long id, ProductCommand command);
 
-    void setStock(Long id, int stock);
+  void setActive(Long id, boolean active);
 
-    Movement recordMovement(
-            Product product, MovementCommand command, int stock, Long actorId, String actorName);
+  boolean categoryExists(Long id);
 
-    List<Movement> movements(Long productId, int page);
+  void setStock(Long id, int stock);
+
+  Movement recordMovement(
+      Product product, MovementCommand command, int stock, Long actorId, String actorName);
+
+  List<Movement> movements(Long productId, int page);
 }

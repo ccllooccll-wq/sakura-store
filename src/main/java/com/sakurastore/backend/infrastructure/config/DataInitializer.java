@@ -46,4 +46,3 @@ public class DataInitializer implements CommandLineRunner {
     }
   }
 }
-//modificado por derik
