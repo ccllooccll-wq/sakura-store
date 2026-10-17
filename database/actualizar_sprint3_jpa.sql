@@ -1,7 +1,3 @@
--- Álvaro Sillerico: Sprint 3, tareas 3.2, 3.3 y 3.5.
--- PostgreSQL: ejecutar en sakura_store antes de iniciar esta versión.
--- Repetible; invalida los OTP pendientes en cada ejecución.
--- No elimina usuarios, productos, stock, ventas ni compras.
 BEGIN;
 
 CREATE TABLE IF NOT EXISTS rol (
