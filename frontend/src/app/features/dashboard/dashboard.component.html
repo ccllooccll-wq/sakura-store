@@ -1,0 +1,59 @@
+<main class="dashboard-shell">
+    <div class="dashboard-heading">
+        <p class="eyebrow">SAKURA STORE / PANEL</p>
+        <h1>Productos con stock bajo</h1>
+        <p class="muted">Reposición pendiente en tu catálogo.</p>
+    </div>
+
+    @if (loading()) {
+        <p class="state" role="status">Cargando productos…</p>
+    } @else if (error()) {
+        <div class="state error" role="alert">{{ error() }}</div>
+    } @else if (!hasSlides()) {
+        <div class="state">
+            <strong>Todo en orden</strong>
+            <p class="muted">No hay productos con stock bajo.</p>
+        </div>
+    } @else {
+        <section
+                class="carousel"
+                aria-roledescription="carrusel"
+                aria-label="Productos con stock bajo"
+                (mouseenter)="pause()"
+                (mouseleave)="resume()"
+        >
+            <div class="carousel-viewport" aria-live="polite">
+                @for (slide of slides(); track slide.id; let i = $index) {
+                    <article
+                            class="slide"
+                            [class.active]="i === current()"
+                            [class.warning]="slide.tone === 'warning'"
+                            [class.info]="slide.tone === 'info'"
+                            [class.ok]="slide.tone === 'ok'"
+                            [attr.aria-hidden]="i !== current()"
+                    >
+                        <h2>{{ slide.title }}</h2>
+                        <p class="slide-subtitle">{{ slide.subtitle }}</p>
+                        <strong class="slide-value">{{ slide.value }}</strong>
+                    </article>
+                }
+            </div>
+
+            @if (slides().length > 1) {
+                <button class="arrow left" (click)="prev()" aria-label="Slide anterior">‹</button>
+                <button class="arrow right" (click)="next()" aria-label="Slide siguiente">›</button>
+
+                <div class="dots">
+                    @for (slide of slides(); track slide.id; let i = $index) {
+                        <button
+                                class="dot"
+                                [class.active]="i === current()"
+                                (click)="goTo(i)"
+                                [attr.aria-label]="'Ir al slide ' + (i + 1)"
+                        ></button>
+                    }
+                </div>
+            }
+        </section>
+    }
+</main>

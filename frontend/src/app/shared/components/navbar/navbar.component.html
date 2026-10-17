@@ -11,6 +11,10 @@
     @if (currentUser(); as user) {
       <nav class="nav-links">
         @if (authService.isAdmin()) {
+            <a routerLink="/dashboard" routerLinkActive="active" class="nav-item">
+                <i class="fa-solid fa-chart-line"></i>
+                <span>Dashboard</span>
+            </a>
           <a
             routerLink="/usuarios"
             routerLinkActive="active"
@@ -24,6 +28,11 @@
           <i class="fa-solid fa-boxes-stacked"></i>
           <span>Inventario</span>
         </a>
+
+          <a routerLink="/ventas" routerLinkActive="active" class="nav-item">
+              <i class="fa-solid fa-cart-shopping"></i>
+              <span>Ventas</span>
+          </a>
       </nav>
     }
 

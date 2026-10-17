@@ -36,3 +36,10 @@ export interface AuthResponse {
   email?: string;
   mensaje?: string;
 }
+export interface UserFilters {
+  username: string;
+  fullName: string;
+  email: string;
+  roleId: number;
+  status: "" | "ACTIVE" | "INACTIVE";
+}

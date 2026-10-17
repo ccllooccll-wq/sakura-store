@@ -1,7 +1,13 @@
 .container {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
   max-width: 1280px;
-  margin: 30px auto;
-  padding: 0 24px;
+  margin: 0 auto;
+  padding: 24px 24px 16px;
+  box-sizing: border-box;
 }
 
 .page-header {
@@ -72,8 +78,10 @@
 }
 
 .table-card {
+  flex: 1 1 auto;
+  min-height: 150px;
   padding: 8px;
-  overflow-x: auto;
+  overflow: auto;
 }
 
 .sakura-table {
@@ -224,4 +232,30 @@
   justify-content: flex-end;
   gap: 12px;
   margin-top: 24px;
+}
+.filter-row th { padding: 6px 8px; background: #211d2e; font-weight: 400; }
+.filter-row .form-control { width: 100%; min-width: 110px; padding: 6px 8px; font-size: 0.85rem; }
+.pagination-bar {
+  display: flex; align-items: center; justify-content: center;
+  gap: 12px; margin-top: 16px; color: var(--text-secondary);
+}
+.pagination-bar .page-size { width: auto; }
+.pagination-bar button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+
+.page-header,
+.alert,
+.filter-card,
+.pagination-bar {
+  flex: none;
+}
+
+
+.sakura-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.sakura-table thead th {
+  background: #211d2e;
 }

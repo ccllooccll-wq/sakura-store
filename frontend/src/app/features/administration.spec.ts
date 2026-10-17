@@ -14,6 +14,7 @@ describe("Roles e inventario", () => {
     { id: 7, name: "ROLE_ADMIN" }, { id: 23, name: "ROLE_VENDEDOR" }, { id: 41, name: "ROLE_PROVEEDOR" },
   ];
   const user = { id: 2, username: "demo", fullName: "Demo", email: "demo@example.com", roleId: 23, roleName: "ROLE_VENDEDOR", active: true };
+  const usersPage = { content: [user], totalElements: 1, totalPages: 1, number: 0, size: 10 };
   const product: Product = { id: 1, sku: "SAK-001", name: "Demo", categoryId: 2, categoryName: "Accesorios", price: 10, stock: 50, minStock: 30, active: true };
   let admin: boolean;
   let users: { getUsers: ReturnType<typeof vi.fn>; getRoles: ReturnType<typeof vi.fn>; createUser: ReturnType<typeof vi.fn>; deleteUser: ReturnType<typeof vi.fn> };
@@ -23,7 +24,7 @@ describe("Roles e inventario", () => {
     admin = true;
     // jsdom does not implement the browser dialog API.
     if (!HTMLDialogElement.prototype.showModal) HTMLDialogElement.prototype.showModal = function () { this.open = true; };
-    users = { getUsers: vi.fn().mockReturnValue(of([user])), getRoles: vi.fn().mockReturnValue(of(roles)), createUser: vi.fn().mockReturnValue(of(user)), deleteUser: vi.fn().mockReturnValue(of({ mensaje: "Eliminado" })) };
+    users = { getUsers: vi.fn().mockReturnValue(of(usersPage)), getRoles: vi.fn().mockReturnValue(of(roles)), createUser: vi.fn().mockReturnValue(of(user)), deleteUser: vi.fn().mockReturnValue(of({ mensaje: "Eliminado" })) };
     inventory = {
       products: vi.fn().mockReturnValue(of([product])), categories: vi.fn().mockReturnValue(of([{ id: 2, name: "Accesorios" }])), movements: vi.fn().mockReturnValue(of([])),
       move: vi.fn().mockReturnValue(of({})), save: vi.fn().mockReturnValue(of(product)), status: vi.fn().mockReturnValue(of(product)), category: vi.fn().mockReturnValue(of({})),
@@ -139,5 +140,15 @@ describe("Roles e inventario", () => {
     fixture.componentInstance.products.set([{ ...product, stock: 20 }]);
     expect(fixture.componentInstance.lowCount()).toBe(1);
     expect(fixture.componentInstance.value()).toBe(200);
+  });
+  it("filtrar vuelve a la página 1 y consulta al servidor con los filtros", () => {
+    const fixture = TestBed.createComponent(UserListComponent);
+    fixture.detectChanges();
+    fixture.componentInstance.userPage = 2;
+    fixture.componentInstance.filters.roleId = 23;
+    fixture.componentInstance.applyFilters();
+    expect(fixture.componentInstance.userPage).toBe(0);
+    expect(users.getUsers).toHaveBeenLastCalledWith(
+        expect.objectContaining({ roleId: 23 }), 0, 10);
   });
 });

@@ -1,0 +1,33 @@
+:host {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+}
+
+app-navbar {
+    display: block;
+    flex: none;
+}
+
+
+:host > :not(app-navbar):not(router-outlet) {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+@media (max-width: 900px), (max-height: 600px) {
+    :host {
+        height: auto;
+        min-height: 100vh;
+        min-height: 100dvh;
+        overflow: visible;
+    }
+    :host > :not(app-navbar):not(router-outlet) {
+        flex: 1 0 auto;
+        overflow: visible;
+    }
+}

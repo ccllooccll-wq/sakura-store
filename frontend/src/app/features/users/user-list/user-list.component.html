@@ -30,39 +30,66 @@
   }
 
   <!-- Filters & Stats Card -->
-  <div class="glass-card filter-card">
-    <div class="search-box">
-      <i class="fa-solid fa-magnifying-glass search-icon"></i>
-      <input
-        type="text"
-        class="form-control"
-        placeholder="Buscar por usuario, nombre o correo..."
-        [ngModel]="searchTerm()" (ngModelChange)="searchTerm.set($event)"
-        />
-    </div>
-    <div class="user-count">
-      <span
-        >Total: <strong>{{ filteredUsers().length }}</strong> usuarios</span
-        >
-      </div>
+    <div class="glass-card filter-card">
+        @if (hasFilters()) {
+            <button type="button" class="btn-secondary" (click)="clearFilters()">
+                Limpiar filtros
+            </button>
+        }
+        <div class="user-count">
+            <span>Total: <strong>{{ totalUsers }}</strong> usuarios</span>
+        </div>
     </div>
 
     <!-- Users Table Card -->
     <div class="glass-card table-card">
       <table class="sakura-table">
         <thead>
-          <tr>
-            <th>ID</th>
-            <th>Usuario</th>
-            <th>Nombre Completo</th>
-            <th>Correo Electrónico</th>
-            <th>Rol</th>
-            <th>Estado</th>
-            <th class="text-right">Acciones</th>
-          </tr>
-        </thead>
+      <tr>
+          <th>ID</th>
+          <th>Usuario</th>
+          <th>Nombre Completo</th>
+          <th>Correo Electrónico</th>
+          <th>Rol</th>
+          <th>Estado</th>
+          <th class="text-right">Acciones</th>
+      </tr>
+      <tr class="filter-row">
+          <th></th>
+          <th>
+              <input class="form-control" placeholder="Filtrar usuario" aria-label="Filtrar por usuario"
+                     [(ngModel)]="filters.username" name="fUsername" (ngModelChange)="onTyping()" />
+          </th>
+          <th>
+              <input class="form-control" placeholder="Filtrar nombre" aria-label="Filtrar por nombre"
+                     [(ngModel)]="filters.fullName" name="fFullName" (ngModelChange)="onTyping()" />
+          </th>
+          <th>
+              <input class="form-control" placeholder="Filtrar correo" aria-label="Filtrar por correo"
+                     [(ngModel)]="filters.email" name="fEmail" (ngModelChange)="onTyping()" />
+          </th>
+          <th>
+              <select class="form-control" aria-label="Filtrar por rol"
+                      [(ngModel)]="filters.roleId" name="fRole" (ngModelChange)="applyFilters()">
+                  <option [ngValue]="0">Todos</option>
+                  @for (role of roles(); track role.id) {
+                      <option [ngValue]="role.id">{{ getRoleDisplayName(role.name) }}</option>
+                  }
+              </select>
+          </th>
+          <th>
+              <select class="form-control" aria-label="Filtrar por estado"
+                      [(ngModel)]="filters.status" name="fStatus" (ngModelChange)="applyFilters()">
+                  <option value="">Todos</option>
+                  <option value="ACTIVE">Activos</option>
+                  <option value="INACTIVE">Inactivos</option>
+              </select>
+          </th>
+          <th></th>
+      </tr>
+      </thead>
         <tbody>
-          @for (user of filteredUsers(); track user.id) {
+            @for (user of users(); track user.id) {
             <tr>
               <td class="id-cell">#{{ user.id }}</td>
               <td class="username-cell">
@@ -116,16 +143,45 @@
               </td>
             </tr>
           }
-          @if (filteredUsers().length === 0) {
-            <tr>
-              <td colspan="7" class="empty-state">
-                <i class="fa-solid fa-folder-open empty-icon"></i>
-                <p>No se encontraron usuarios registrados.</p>
-              </td>
-            </tr>
-          }
+            @if (loading) {
+                <tr>
+                    <td colspan="7" class="empty-state" role="status">
+                        <p>Cargando usuarios…</p>
+                    </td>
+                </tr>
+            } @else if (users().length === 0) {
+                <tr>
+                    <td colspan="7" class="empty-state">
+                        <i class="fa-solid fa-folder-open empty-icon"></i>
+                        <p>
+                            {{
+                                hasFilters()
+                                    ? "No hay usuarios que coincidan con los filtros."
+                                    : "No se encontraron usuarios registrados."
+                            }}
+                        </p>
+                    </td>
+                </tr>
+            }
         </tbody>
       </table>
+    </div>
+    <div class="pagination-bar">
+        <button type="button" class="btn-secondary"
+                [disabled]="userPage === 0 || loading" (click)="changeUserPage(-1)">
+            Anterior
+        </button>
+        <span>Página {{ userPage + 1 }} de {{ totalPages || 1 }}</span>
+        <button type="button" class="btn-secondary"
+                [disabled]="userPage + 1 >= totalPages || loading" (click)="changeUserPage(1)">
+            Siguiente
+        </button>
+        <select class="form-control page-size" aria-label="Usuarios por página"
+                [(ngModel)]="pageSize" name="pageSize" (ngModelChange)="changePageSize()">
+            @for (n of pageSizes; track n) {
+                <option [ngValue]="n">{{ n }} por página</option>
+            }
+        </select>
     </div>
   </main>
 

@@ -1,4 +1,6 @@
-import { Component, OnInit, OnDestroy, computed, inject, signal } from "@angular/core";
+import { Component, DestroyRef, OnInit, OnDestroy, inject, signal } from "@angular/core";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { EMPTY, Subject, catchError, debounceTime, switchMap, tap } from "rxjs";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { HttpErrorResponse } from "@angular/common/http";
@@ -11,6 +13,7 @@ import {
   Role,
   UpdateUserRequest,
   User,
+  UserFilters,
 } from "../../../core/models/user.model";
 
 @Component({
@@ -24,7 +27,15 @@ export class UserListComponent implements OnInit, OnDestroy {
   readonly users = signal<User[]>([]);
   readonly roles = signal<Role[]>([]);
   rolesLoading = false;
-  readonly searchTerm = signal("");
+  filters: UserFilters = { username: "", fullName: "", email: "", roleId: 0, status: "" };
+  readonly pageSizes = [10, 20, 50];
+  pageSize = 10;
+  userPage = 0;
+  totalPages = 0;
+  totalUsers = 0;
+  loading = true;
+  private readonly reload$ = new Subject<void>();
+  private readonly typing$ = new Subject<void>();
 
   showModal = false;
   isEditMode = false;
@@ -55,12 +66,72 @@ export class UserListComponent implements OnInit, OnDestroy {
   get isAdmin(): boolean {
     return this.authService.isAdmin();
   }
+  constructor() {
+
+    this.reload$
+        .pipe(
+            tap(() => (this.loading = true)),
+            switchMap(() =>
+                this.userService.getUsers(this.filters, this.userPage, this.pageSize).pipe(
+                    catchError((err: HttpErrorResponse) => {
+                      this.loading = false;
+                      this.showError(httpErrorMessage(err, "No se pudo cargar la lista de usuarios."));
+                      return EMPTY;
+                    }),
+                ),
+            ),
+            takeUntilDestroyed(inject(DestroyRef)),
+        )
+        .subscribe((res) => {
+
+          if (!res.content.length && this.userPage > 0 && res.totalPages > 0) {
+            this.userPage = res.totalPages - 1;
+            this.reload$.next();
+            return;
+          }
+          this.users.set(res.content);
+          this.totalUsers = res.totalElements;
+          this.totalPages = res.totalPages;
+          this.loading = false;
+        });
+
+    this.typing$
+        .pipe(debounceTime(300), takeUntilDestroyed(inject(DestroyRef)))
+        .subscribe(() => this.applyFilters());
+  }
 
   loadUsers(): void {
-    this.userService.getUsers().subscribe({
-      next: (data) => this.users.set(data),
-      error: (err: HttpErrorResponse) => this.showError(httpErrorMessage(err, "No se pudo cargar la lista de usuarios.")),
-    });
+    this.reload$.next();
+  }
+
+  onTyping(): void {
+    this.typing$.next();
+  }
+
+  applyFilters(): void {
+    this.userPage = 0;
+    this.reload$.next();
+  }
+
+  clearFilters(): void {
+    this.filters = { username: "", fullName: "", email: "", roleId: 0, status: "" };
+    this.applyFilters();
+  }
+
+  hasFilters(): boolean {
+    const f = this.filters;
+    return !!(f.username.trim() || f.fullName.trim() || f.email.trim() || f.roleId || f.status);
+  }
+
+  changeUserPage(delta: number): void {
+    const next = this.userPage + delta;
+    if (this.loading || next < 0 || next >= this.totalPages) return;
+    this.userPage = next;
+    this.reload$.next();
+  }
+
+  changePageSize(): void {
+    this.applyFilters();
   }
 
   loadRoles(): void {
@@ -80,10 +151,6 @@ export class UserListComponent implements OnInit, OnDestroy {
     });
   }
 
-  readonly filteredUsers = computed(() => {
-    const term = this.searchTerm().trim().toLowerCase();
-    return this.users().filter(u => (u.username + " " + u.fullName + " " + u.email).toLowerCase().includes(term));
-  });
 
   openCreateModal(): void {
     if (!this.isAdmin || this.saving) return;

@@ -16,8 +16,10 @@ export const routes: Routes = [
     loadComponent: () => import("./shared/components/app-shell/app-shell.component").then(m => m.AppShellComponent),
     canActivate: [authGuard],
     children: [
+      { path: "dashboard", loadComponent: () => import("./features/dashboard/dashboard.component").then(m => m.DashboardComponent) },
       { path: "usuarios", loadComponent: () => import("./features/users/user-list/user-list.component").then(m => m.UserListComponent), canActivate: [adminGuard] },
       { path: "inventario", loadComponent: () => import("./features/inventory/inventory.component").then(m => m.InventoryComponent) },
+      { path: "ventas", loadComponent: () => import("./features/sales/sales.component").then(m => m.SalesComponent) },
     ],
   },
   { path: "**", redirectTo: "login" },
