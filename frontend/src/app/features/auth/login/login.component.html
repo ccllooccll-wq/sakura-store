@@ -1,0 +1,92 @@
+<div class="login-wrapper">
+  <div class="sakura-bg-glow"></div>
+
+  <div class="glass-card login-card">
+    <div class="login-header">
+      <div class="brand-badge">
+        <span class="flower">🌸</span>
+        <span>SAKURA STORE</span>
+      </div>
+      <h2>Iniciar Sesión</h2>
+      <p class="subtitle">Sistema de Gestión de Inventario & Ventas</p>
+    </div>
+
+    @if (errorMessage) {
+      <div class="alert alert-error">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <span>{{ errorMessage }}</span>
+      </div>
+    }
+
+    @if (sessionExpired) { <div class="alert alert-info" role="status">Tu sesión venció. Inicia sesión nuevamente.</div> }
+    <form (ngSubmit)="onSubmit()" #loginForm="ngForm">
+      <div class="form-group">
+        <label for="username">Usuario o correo</label>
+        <div class="input-with-icon">
+          <i class="fa-solid fa-user icon"></i>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            class="form-control"
+            [(ngModel)]="username"
+            required
+            placeholder="Tu usuario o correo electrónico"
+            autocomplete="username"
+            />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Contraseña</label>
+        <div class="input-with-icon">
+          <i class="fa-solid fa-lock icon"></i>
+          <input
+            type="password"
+            id="password"
+            autocomplete="current-password"
+            name="password"
+            class="form-control"
+            [(ngModel)]="password"
+            required
+            placeholder="••••••••"
+            />
+        </div>
+        <div class="password-help">
+          <a
+            routerLink="/recuperar-contrasena"
+            class="password-help-link"
+            >¿Olvidaste tu contraseña?</a
+            >
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          class="btn-sakura btn-full"
+          [disabled]="loading || !loginForm.valid"
+          >
+          @if (!loading) {
+            <span>Ingresar al Sistema</span>
+          }
+          @if (loading) {
+            <span
+              ><i class="fa-solid fa-spinner fa-spin"></i> Autenticando...</span
+              >
+            }
+          </button>
+        </form>
+
+        <div
+          class="register-link-container"
+
+          >
+          ¿No tienes una cuenta?
+          <a
+            routerLink="/registro"
+            class="register-link"
+            >Crear una nueva cuenta</a
+            >
+          </div>
+        </div>
+      </div>

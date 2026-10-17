@@ -1,0 +1,143 @@
+<div class="auth-wrapper">
+  <div class="sakura-bg-glow"></div>
+
+  <div class="glass-card auth-card">
+    <div class="auth-header">
+      <div class="brand-badge">
+        <span class="flower">🌸</span>
+        <span>SAKURA STORE</span>
+      </div>
+      <h2>Verifica tu correo</h2>
+      @if (!verified) {
+        <p class="subtitle">
+          Hemos enviado un código de 6 dígitos a:<br />
+          <strong class="email-highlight">{{
+            email || "tu correo registrado"
+          }}</strong>
+        </p>
+      }
+    </div>
+
+    <!-- Alertas de estado -->
+    @if (successMessage) {
+      <div class="alert alert-success">
+        <i class="fa-solid fa-circle-check icon-lg"></i>
+        <div>
+          <strong>¡Éxito!</strong>
+          <p>{{ successMessage }}</p>
+        </div>
+      </div>
+    }
+
+    @if (errorMessage) {
+      <div class="alert alert-error">
+        <i class="fa-solid fa-circle-exclamation icon-lg"></i>
+        <div>
+          <strong>Atención:</strong>
+          <p>{{ errorMessage }}</p>
+        </div>
+      </div>
+    }
+
+    @if (infoMessage) {
+      <div class="alert alert-info">
+        <i class="fa-solid fa-paper-plane icon-lg"></i>
+        <div>
+          <strong>Mensaje:</strong>
+          <p>{{ infoMessage }}</p>
+        </div>
+      </div>
+    }
+
+    <!-- Formulario de verificación (si no está aún verificado) -->
+    @if (!verified) {
+      <div>
+        @if (!hasPresetEmail) {
+          <div class="form-group">
+            <label for="emailInput">Correo Electrónico</label>
+            <div class="input-with-icon">
+              <i class="fa-solid fa-envelope icon"></i>
+              <input
+                type="email"
+                id="emailInput"
+                class="form-control"
+                [(ngModel)]="email"
+                placeholder="usuario@gmail.com"
+                required
+                />
+            </div>
+          </div>
+        }
+        <form (ngSubmit)="onVerify()" #otpForm="ngForm">
+          <div class="form-group">
+            <label for="code">Código de Verificación (6 dígitos)</label>
+            <div class="otp-input-container">
+              <input
+                type="text"
+                id="code"
+                name="code"
+                class="form-control otp-input"
+                [(ngModel)]="codigo"
+                required
+                maxlength="6"
+                pattern="^[0-9]{6}$"
+                placeholder="483921"
+                autocomplete="off"
+                (keyup.enter)="onVerify()"
+                />
+            </div>
+            <small class="help-text"
+              >Introduce el código numérico de 6 dígitos recibido en tu bandeja de
+              entrada.</small
+              >
+            </div>
+            <button
+              type="submit"
+              class="btn-sakura btn-full"
+              [disabled]="loading || !codigo || codigo.length !== 6 || !email"
+              >
+              @if (!loading) {
+                <span
+                  ><i class="fa-solid fa-shield-check"></i> Verificar Código</span
+                  >
+                }
+                @if (loading) {
+                  <span
+                    ><i class="fa-solid fa-spinner fa-spin"></i> Validando...</span
+                    >
+                  }
+                </button>
+              </form>
+              <div class="resend-section">
+                <p>¿No recibiste el correo o el código expiró?</p>
+                <button
+                  type="button"
+                  class="btn-outline-sakura"
+                  (click)="onResend()"
+                  [disabled]="resendLoading || !email"
+                  >
+                  @if (!resendLoading) {
+                    <span
+                      ><i class="fa-solid fa-rotate-right"></i> Reenviar código</span
+                      >
+                    }
+                    @if (resendLoading) {
+                      <span
+                        ><i class="fa-solid fa-spinner fa-spin"></i> Reenviando...</span
+                        >
+                      }
+                    </button>
+                  </div>
+                </div>
+              }
+
+              <!-- Botón para ir a login si fue exitoso -->
+              @if (verified) {
+                <div class="action-success">
+                  <button routerLink="/login" class="btn-sakura btn-full">
+                    <i class="fa-solid fa-right-to-bracket"></i> Iniciar Sesión Ahora
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
