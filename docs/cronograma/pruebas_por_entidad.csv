@@ -1,0 +1,12 @@
+SAKURA STORE — Plan de Pruebas por Entidad (POO),,,,
+"Enfoque solicitado por el docente: NO se prueban flujos completos de servicios (login, guardar, etc.), SINO la implementación de cada entidad de dominio (POO) de forma aislada: creación válida/inválida, encapsulamiento y reglas de negocio propias de la clase.",,,,
+Sprint,Entidad (clase de dominio),Responsable,Casos de prueba de la entidad (unitarias sobre la clase),Estado
+Sprint 1,Usuario,Derik Bernabe,Crear usuario con datos válidos; rechazar usuario sin nombre/usuario/contraseña; nombre_usuario no puede ser vacío; método activar()/desactivar() cambia el estado interno; atributos privados solo accesibles por getters.,Pendiente
+Sprint 1,Rol,Derik Bernabe,Crear rol con nombre válido; rechazar nombre_rol vacío o duplicado a nivel de objeto.,Pendiente
+Sprint 2,Categoría,Alvaro Sillerico,Crear categoría con nombre válido; rechazar nombre vacío; descripción opcional se maneja correctamente (null permitido).,Pendiente
+Sprint 2,Proveedor,Ronny Mamani,Crear proveedor con datos válidos; validar formato básico de email/teléfono a nivel de objeto; país_origen usa el valor por defecto si no se especifica.,Pendiente
+Sprint 2,Producto,Alvaro Sillerico,Crear producto válido; rechazar precio_venta negativo o cero; rechazar stock_actual negativo; método reducirStock(cantidad) lanza excepción si cantidad > stock_actual; método estaBajoStockMinimo() devuelve true/false correctamente.,Pendiente
+Sprint 2,MovimientoInventario,Ronny Mamani,Crear movimiento con tipo válido (Entrada/Salida/Ajuste); rechazar cantidad negativa o cero; motivo no puede quedar vacío en un Ajuste.,Pendiente
+Sprint 3,Cliente,Ronny Mamani,Crear cliente con datos mínimos (todos opcionales salvo id); validar formato básico de email si se proporciona.,Pendiente
+Sprint 3,Venta,Derik Bernabe,Crear venta con estado inicial 'Completada'; método calcularTotal() = subtotal - descuento; método anular() cambia estado a 'Anulada' y lo deja inmutable después.,Pendiente
+Sprint 3,DetalleVenta,Derik Bernabe,Crear detalle con cantidad > 0; método calcularSubtotal() = cantidad * precio_unitario; rechazar cantidad negativa.,Pendiente

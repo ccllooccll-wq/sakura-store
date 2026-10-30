@@ -1,0 +1,6 @@
+.confirmation { border: 1px solid #ebdae3; border-radius: 20px; padding: 28px; width: min(420px, calc(100vw - 48px)); color: #2d2030; background: #fff; box-shadow: 0 24px 80px #23132738; }
+.confirmation::backdrop { background: #23132780; backdrop-filter: blur(4px); }
+.confirmation h2 { margin: 0 0 14px; font-size: 1.3rem; }
+.confirmation p { margin: 0 0 24px; line-height: 1.6; }
+.confirmation-actions { display: flex; justify-content: flex-end; gap: 12px; }
+.btn-secondary { border: 1px solid #d8c5d1; border-radius: 10px; background: #fff; padding: 10px 16px; cursor: pointer; }

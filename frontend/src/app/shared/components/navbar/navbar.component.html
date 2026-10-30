@@ -1,0 +1,48 @@
+<header class="sakura-navbar">
+  <div class="navbar-container">
+    <div class="brand">
+      <div class="logo-icon">🌸</div>
+      <div class="brand-text">
+        <span class="brand-title">SAKURA STORE</span>
+        <span class="brand-subtitle">Inventario & Ventas</span>
+      </div>
+    </div>
+
+    @if (currentUser(); as user) {
+      <nav class="nav-links">
+        @if (authService.isAdmin()) {
+          <a
+            routerLink="/usuarios"
+            routerLinkActive="active"
+            class="nav-item"
+            >
+            <i class="fa-solid fa-users"></i>
+            <span>Usuarios</span>
+          </a>
+        }
+        <a routerLink="/inventario" routerLinkActive="active" class="nav-item">
+          <i class="fa-solid fa-boxes-stacked"></i>
+          <span>Inventario</span>
+        </a>
+      </nav>
+    }
+
+    @if (currentUser(); as user) {
+      <div class="user-profile">
+        <div class="user-info">
+          <span class="user-name">{{ user.fullName }}</span>
+          <span class="role-badge" [ngClass]="getRoleClass(user.roleName)">
+            {{ getRoleDisplayName(user.roleName) }}
+          </span>
+        </div>
+        <button class="btn-logout" (click)="logout()" title="Cerrar sesión" [disabled]="loggingOut()">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
+    }
+  </div>
+</header>
+
+@if (logoutError()) {
+  <p class="logout-error" role="alert">{{ logoutError() }}</p>
+}

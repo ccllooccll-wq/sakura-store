@@ -1,0 +1,32 @@
+SAKURA STORE — Marco de Trabajo Scrum del Proyecto,,
+1. Roles del equipo (Programación III — Grupo Sakura Store),,
+Rol,Responsable / Persona,Responsabilidades
+Product Owner,Derik Bernabe,Define y prioriza el Product Backlog; representa al 'cliente' (Sakura Store); acepta o rechaza los incrementos entregados en cada Sprint Review.
+Scrum Master,Marcelo Calle,"Facilita las ceremonias (Planning, Daily, Review, Retro), da seguimiento al cronograma y responsables, y elimina impedimentos del equipo."
+Equipo de Desarrollo,"Derik Bernabe, Alvaro Sillerico, Ronny Mamani, Marcelo Calle","Diseñan, implementan y prueban el software (Clean Architecture, POO, PostgreSQL). En un equipo de 4, el PO y el SM también desarrollan."
+1.1 Distribución técnica sugerida (módulo / entidad por integrante),,
+Integrante,Módulo / entidades a cargo,Rol Scrum
+Derik Bernabe,Arquitectura base + entidades Usuario y Rol (plantilla CRUD que el resto replica) + entidades Venta/DetalleVenta y casos de uso de ventas,Product Owner
+Alvaro Sillerico,Conexión a BD + entidades Categoría y Producto (inventario) + API REST de inventario y reportes,Desarrollador
+Ronny Mamani,"Entidades Proveedor, MovimientoInventario y Cliente + repositorios de inventario y ventas",Desarrollador
+Marcelo Calle,"Frontend Angular completo (Login, Usuarios, Inventario, Ventas, Dashboard)",Scrum Master
+Nota: distribución sugerida para asegurar que cada tarea tenga un responsable claro. El equipo puede reasignarla según fortalezas/disponibilidad reales.,,
+2. Artefactos Scrum,,
+Artefacto,Descripción,Herramienta sugerida
+Product Backlog,Lista priorizada de todas las funcionalidades del sistema (historias de usuario) de Sakura Store.,Trello / Jira / Excel
+Sprint Backlog,"Subconjunto de historias del Product Backlog seleccionadas para el Sprint en curso, con sus tareas y responsable.",Trello / Jira
+Incremento,Versión funcional del software entregada al final de cada Sprint (entidad + CRUD + pantalla funcionando).,Repositorio Git / Demo
+3. Ceremonias / Eventos Scrum,,
+Evento,Frecuencia / Duración,Propósito
+Sprint Planning,Al inicio de cada Sprint (2–3 h),Seleccionar las historias del Product Backlog a desarrollar y definir el Sprint Backlog con responsables.
+Daily Scrum,"Diario, 15 min (async por WhatsApp si no hay tiempo presencial)","Sincronizar al equipo: qué se hizo, qué se hará, qué impedimentos existen."
+Sprint Review,Al final de cada Sprint (1 h),Mostrar el incremento funcional al Product Owner / docente y recoger retroalimentación.
+Sprint Retrospective,Al final de cada Sprint (45 min),Reflexionar sobre el proceso del equipo y definir mejoras para el siguiente Sprint.
+"4. Estructura de Sprints del proyecto (2 semanas c/u, salvo Kickoff y Sprint 0)",,
+Sprint,Objetivo principal,Duración
+Kickoff,Reunión de inicio del proyecto con todo el equipo.,Sábado 29 ago 2026
+Sprint 0 — Planificación,"Requerimientos, arquitectura Clean Architecture, modelo de datos PostgreSQL, entorno de trabajo.",31 ago – 4 sep 2026 (Completado)
+Sprint 1,"Arquitectura base + entidad Usuario/Rol como plantilla CRUD completa (dominio, pruebas de entidad, repositorio, caso de uso, API, pantalla) y autenticación.",7 – 19 sep 2026
+Sprint 2,"Gestión de Inventario: entidades Categoría, Proveedor, Producto y MovimientoInventario replicando la plantilla; stock y alertas.",21 sep – 4 oct 2026
+Sprint 3,"Gestión de Ventas: entidades Cliente, Venta y DetalleVenta; carrito, comprobante y actualización de stock desde el caso de uso.",5 – 18 oct 2026
+Sprint 4,"Reportes, Dashboard, pruebas de aceptación, corrección de errores, documentación y cierre.",19 – 30 oct 2026
