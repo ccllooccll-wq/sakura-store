@@ -67,6 +67,7 @@ public class User {
 
   public static User createNewUser(
       String username, String fullName, String email, String password, Role role) {
+    fullName = NameRules.require(fullName, 100);
     return new User(
         null,
         username,
@@ -80,7 +81,7 @@ public class User {
         LocalDateTime.now());
   }
 
-  // Reglas de negocio y encapsulamiento
+
   public void markEmailAsVerified() {
     this.emailVerified = true;
     this.updatedAt = LocalDateTime.now();
@@ -103,6 +104,7 @@ public class User {
   }
 
   public void updateDetails(String fullName, String email, Role role) {
+    fullName = NameRules.require(fullName, 100);
     validateFullName(fullName);
     validateEmail(email);
     validateRole(role);
@@ -120,7 +122,7 @@ public class User {
     this.updatedAt = LocalDateTime.now();
   }
 
-  // Validaciones de invariantes POO
+
   private void validateUsername(String username) {
     if (username == null || username.trim().isEmpty()) {
       throw new DomainException("El nombre de usuario es obligatorio.");
@@ -157,7 +159,7 @@ public class User {
     }
   }
 
-  // Getters y Setters
+
   public Long getId() {
     return id;
   }

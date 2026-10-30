@@ -21,15 +21,18 @@ public class CommerceService {
   private final CommerceRepositoryPort commerce;
   private final InventoryRepositoryPort inventory;
   private final UserRepositoryPort users;
+  private final StockIntegrationService stockIntegration;
   private static final BigDecimal MAX_TOTAL = new BigDecimal("9999999999.99");
 
   public CommerceService(
       CommerceRepositoryPort commerce,
       InventoryRepositoryPort inventory,
-      UserRepositoryPort users) {
+      UserRepositoryPort users,
+      StockIntegrationService stockIntegration) {
     this.commerce = commerce;
     this.inventory = inventory;
     this.users = users;
+    this.stockIntegration = stockIntegration;
   }
 
   public Sale sell(SaleCommand command, Long actorId) {
@@ -41,6 +44,8 @@ public class CommerceService {
       throw new AccessDeniedException("No tienes permiso para registrar ventas.");
     Long customerId = command.customerId();
     String customerName = command.customerName() == null ? null : command.customerName().trim();
+    if (customerName != null && !customerName.isBlank())
+      customerName = NameRules.require(customerName, 200);
     BigDecimal discount = command.discount();
     if (discount == null || discount.signum() < 0 || discount.scale() > 2
         || discount.compareTo(MAX_TOTAL) > 0)
@@ -70,8 +75,7 @@ public class CommerceService {
       if (quantities.putIfAbsent(item.productId(), item.quantity()) != null)
         throw new DomainException("Cada producto debe aparecer una sola vez en la venta.");
     }
-    // Siempre se bloquean en orden de ID para evitar ventas simultáneas del mismo stock.
-    var products = new LinkedHashMap<Long, Product>();
+
     var lines = new ArrayList<Line>();
     BigDecimal total = BigDecimal.ZERO;
     for (var entry : quantities.entrySet()) {
@@ -80,7 +84,6 @@ public class CommerceService {
         throw new DomainException("Stock insuficiente para " + p.name() + ".");
       var subtotal = p.price().multiply(BigDecimal.valueOf(entry.getValue()));
       total = total.add(subtotal);
-      products.put(p.id(), p);
       lines.add(new Line(p.id(), p.name(), p.sku(), entry.getValue(), p.price(), subtotal));
     }
     validTotal(total);
@@ -99,15 +102,7 @@ public class CommerceService {
             discount,
             customerName,
             lines);
-    for (var line : lines) {
-      var p = products.get(line.productId());
-      inventory.recordMovement(
-          p,
-          new MovementCommand(p.id(), "SALIDA", line.quantity(), "Venta #" + sale.id()),
-          StockRules.move(p.stock(), line.quantity(), "SALIDA"),
-          actorId,
-          actor.getFullName());
-    }
+    stockIntegration.registerSale(sale.id(), lines, actorId, actor.getFullName());
     return sale;
   }
 
@@ -124,7 +119,6 @@ public class CommerceService {
       if (items.putIfAbsent(item.productId(), item) != null)
         throw new DomainException("Producto repetido en la compra.");
     }
-    var products = new LinkedHashMap<Long, Product>();
     var lines = new ArrayList<Line>();
     BigDecimal total = BigDecimal.ZERO;
     for (var item : items.values()) {
@@ -132,22 +126,13 @@ public class CommerceService {
       StockRules.move(p.stock(), item.quantity(), "ENTRADA");
       var subtotal = item.unitPrice().multiply(BigDecimal.valueOf(item.quantity()));
       total = total.add(subtotal);
-      products.put(p.id(), p);
       lines.add(new Line(p.id(), p.name(), p.sku(), item.quantity(), item.unitPrice(), subtotal));
     }
     validTotal(total);
     String supplier =
         command.supplierReference() == null ? null : command.supplierReference().trim();
     var purchase = commerce.savePurchase(actorId, supplier, total, lines);
-    for (var line : lines) {
-      var p = products.get(line.productId());
-      inventory.recordMovement(
-          p,
-          new MovementCommand(p.id(), "ENTRADA", line.quantity(), "Compra #" + purchase.id()),
-          StockRules.move(p.stock(), line.quantity(), "ENTRADA"),
-          actorId,
-          actor.getFullName());
-    }
+    stockIntegration.registerPurchase(purchase.id(), lines, actorId, actor.getFullName());
     return purchase;
   }
 

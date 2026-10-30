@@ -89,7 +89,7 @@ abstract class JpaIntegrationScenarios {
     var user =
         User.createNewUser(
             username,
-            username,
+            "Usuario Prueba",
             username + "@example.com",
             passwordHash,
             roles.findByName(role).orElseThrow());
@@ -100,7 +100,7 @@ abstract class JpaIntegrationScenarios {
   private Product product(String sku, int quantity) {
     var p =
         inventory.create(
-            new ProductCommand(sku, "Cuaderno " + sku, category.id(), new BigDecimal("12.50"), 30));
+            new ProductCommand(sku, "Cuaderno Sakura", category.id(), new BigDecimal("12.50"), 30));
     if (quantity > 0)
       inventory.move(
           new MovementCommand(p.id(), "ENTRADA", quantity, "Saldo inicial"),
@@ -581,7 +581,7 @@ abstract class JpaIntegrationScenarios {
     var inactive = product("PAGE-INACTIVE", 0);
     inventory.status(inactive.id(), false);
     mvc.perform(get("/api/inventory/products").with(as(customer))
-        .param("page", "0").param("size", "8").param("name", "PAGE-").param("status", "ACTIVE"))
+        .param("page", "0").param("size", "8").param("name", "Sakura").param("status", "ACTIVE"))
         .andExpect(status().isOk()).andExpect(jsonPath("$.number").value(0))
         .andExpect(jsonPath("$.content.length()").value(2))
         .andExpect(jsonPath("$.totalElements").value(2));
@@ -622,6 +622,121 @@ abstract class JpaIntegrationScenarios {
     assertEquals(before, movements.count());
     assertEquals(10, stock(a.id()));
     assertEquals(10, stock(b.id()));
+  }
+
+  @Test
+  void reportTotalsAndRankingRespectDiscountsStatusAndHistoricalPrices() throws Exception {
+    var a = product("REPORT-A", 50); var b = product("REPORT-B", 50);
+    var sale = commerce.sell(new SaleCommand(List.of(new SaleItem(a.id(), 2), new SaleItem(b.id(), 1)),
+        "EFECTIVO", null, "María José", new BigDecimal("2.50")), seller.getId());
+    var cancelled = commerce.sell(command(a, 1), seller.getId());
+    var row = sales.findById(cancelled.id()).orElseThrow(); row.setStatus("CANCELLED"); sales.saveAndFlush(row);
+    mvc.perform(get("/api/reports/summary").with(as(admin))).andExpect(status().isOk())
+      .andExpect(jsonPath("$.salesCount").value(1)).andExpect(jsonPath("$.subtotal").value(37.5))
+      .andExpect(jsonPath("$.discount").value(2.5)).andExpect(jsonPath("$.total").value(35)).andExpect(jsonPath("$.averageTicket").value(35));
+    mvc.perform(get("/api/reports/sales").with(as(seller))).andExpect(status().isOk())
+      .andExpect(jsonPath("$.totalElements").value(1)).andExpect(jsonPath("$.content[0].id").value(sale.id()));
+    inventory.update(a.id(), new ProductCommand(a.sku(), "Cuaderno nuevo", category.id(), new BigDecimal("99.00"), 30));
+    mvc.perform(get("/api/reports/top-products").with(as(seller)).param("size", "1")).andExpect(status().isOk())
+      .andExpect(jsonPath("$.totalElements").value(2)).andExpect(jsonPath("$.totalPages").value(2))
+      .andExpect(jsonPath("$.content[0].productId").value(a.id())).andExpect(jsonPath("$.content[0].units").value(2))
+      .andExpect(jsonPath("$.content[0].grossAmount").value(25));
+    mvc.perform(get("/api/reports/top-products").with(as(admin)).param("page", "1").param("size", "1"))
+      .andExpect(status().isOk()).andExpect(jsonPath("$.content[0].productId").value(b.id()));
+  }
+  @Test
+  void reportDatesIncludeEntireLastDayAndExcludeNextDay() throws Exception {
+    var p = product("DATE-REPORT", 50);
+    var a = commerce.sell(command(p, 1), seller.getId()); var b = commerce.sell(command(p, 1), seller.getId());
+    var first = sales.findById(a.id()).orElseThrow(); first.setCreatedAt(LocalDateTime.of(2026,10,10,23,59,59)); sales.saveAndFlush(first);
+    var next = sales.findById(b.id()).orElseThrow(); next.setCreatedAt(LocalDateTime.of(2026,10,11,0,0)); sales.saveAndFlush(next);
+    mvc.perform(get("/api/reports/sales").with(as(admin)).param("from","2026-10-10").param("to","2026-10-10"))
+      .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1)).andExpect(jsonPath("$.content[0].id").value(a.id()));
+    mvc.perform(get("/api/reports/summary").with(as(admin)).param("from","2026-10-12").param("to","2026-10-12"))
+      .andExpect(status().isOk()).andExpect(jsonPath("$.salesCount").value(0)).andExpect(jsonPath("$.total").value(0));
+  }
+  @Test
+  void reportStockIncludesEqualityAndFiltersCategoryAndActiveProducts() throws Exception {
+    var low = product("LOW",30); product("HIGH",31); var off = product("OFF",0); inventory.status(off.id(),false);
+    var otherCategory=inventory.category(new CategoryCommand("Accesorios"));
+    inventory.create(new ProductCommand("OTHER","Diadema",otherCategory.id(),BigDecimal.TEN,30));
+    mvc.perform(get("/api/reports/stock").with(as(admin)).param("lowStock","true").param("categoryId",category.id().toString()))
+      .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1))
+      .andExpect(jsonPath("$.content[0].productId").value(low.id())).andExpect(jsonPath("$.content[0].lowStock").value(true))
+      .andExpect(jsonPath("$.content[0].retailValue").value(375));
+  }
+  @Test
+  void reportMovementsFilterProductTypeAndDates() throws Exception {
+    var p=product("MOVE",40);product("MOVE-OTHER",10);commerce.sell(command(p,2),seller.getId());
+    mvc.perform(get("/api/reports/movements").with(as(seller)).param("productId",p.id().toString()).param("type","SALIDA"))
+      .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(1))
+      .andExpect(jsonPath("$.content[0].quantity").value(2)).andExpect(jsonPath("$.content[0].previousStock").value(40))
+      .andExpect(jsonPath("$.content[0].newStock").value(38));
+    mvc.perform(get("/api/reports/movements").with(as(admin)).param("from","2000-01-01").param("to","2000-01-01"))
+      .andExpect(status().isOk()).andExpect(jsonPath("$.totalElements").value(0));
+  }
+  @Test
+  void reportEndpointsRequireStaffIncludingCsv() throws Exception {
+    for(String endpoint:List.of("summary","sales","top-products","stock","movements","sales/csv","low-stock/csv")) {
+      mvc.perform(get("/api/reports/"+endpoint)).andExpect(status().isUnauthorized());
+      mvc.perform(get("/api/reports/"+endpoint).with(as(customer))).andExpect(status().isForbidden());
+      mvc.perform(get("/api/reports/"+endpoint).with(as(seller))).andExpect(status().isOk());
+    }
+  }
+  @Test
+  void invalidReportParametersReturnControlledBadRequest() throws Exception {
+    mvc.perform(get("/api/reports/sales").with(as(admin)).param("from","2026-10-11").param("to","2026-10-10")).andExpect(status().isBadRequest());
+    for(String size:List.of("0","101","-1"))mvc.perform(get("/api/reports/sales").with(as(admin)).param("size",size)).andExpect(status().isBadRequest());
+    mvc.perform(get("/api/reports/movements").with(as(admin)).param("type","INVALID")).andExpect(status().isBadRequest());
+    mvc.perform(get("/api/reports/movements").with(as(admin)).param("productId","-1")).andExpect(status().isBadRequest());
+    mvc.perform(get("/api/reports/stock").with(as(admin)).param("categoryId","-1")).andExpect(status().isBadRequest());
+    mvc.perform(get("/api/reports/sales").with(as(admin)).param("from","no-es-fecha")).andExpect(status().isBadRequest());
+    mvc.perform(get("/api/reports/unknown/csv").with(as(admin))).andExpect(status().isBadRequest());
+  }
+  @Test
+  void csvExportsAllPagesWithUtf8EscapingAndFormulaProtection() throws Exception {
+    var p=product("CSV",0);var rows=new ArrayList<com.sakurastore.backend.infrastructure.persistence.entity.MovementJpaEntity>();
+    for(int i=0;i<105;i++) {
+      var row=new com.sakurastore.backend.infrastructure.persistence.entity.MovementJpaEntity();
+      row.setProduct(products.getReferenceById(p.id()));row.setActor(userRows.getReferenceById(admin.getId()));
+      row.setType("ENTRADA");row.setQuantity(1);row.setPreviousStock(i);row.setNewStock(i+1);
+      row.setReason(i==104?"=SUM(1;2)":"Reposición; \"Sakura\"");rows.add(row);
+    }
+    movements.saveAllAndFlush(rows);
+    var result=mvc.perform(get("/api/reports/movements/csv").with(as(admin)).param("productId",p.id().toString()))
+      .andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store"))
+      .andExpect(header().string("Content-Disposition",org.hamcrest.Matchers.containsString("attachment"))).andReturn();
+    String csv=result.getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+    assertTrue(csv.startsWith("\uFEFF"));assertEquals(106,csv.lines().count());
+    assertTrue(csv.contains("'=SUM(1;2)"));assertTrue(csv.contains("Reposición; \"\"Sakura\"\""));
+  }
+  @Test
+  void namesRejectNumbersSymbolsAndWhitespaceAcrossAllWriteEndpoints() throws Exception {
+    var p=product("VALID",0);long productCount=products.count();long userCount=userRows.count();
+    for(String name:List.of("Cliente123","María@","Cuaderno-azul","123","   ","O'Connor","Ana\nMaría")) {
+      var body=new ProductCommand("NEW",name,category.id(),BigDecimal.TEN,30);
+      mvc.perform(post("/api/inventory/products").with(as(admin)).with(csrf()).contentType("application/json").content(json.writeValueAsString(body))).andExpect(status().isBadRequest());
+      mvc.perform(put("/api/inventory/products/"+p.id()).with(as(admin)).with(csrf()).contentType("application/json").content(json.writeValueAsString(body))).andExpect(status().isBadRequest());
+      mvc.perform(post("/api/users").with(as(admin)).with(csrf()).contentType("application/json")
+        .content(json.writeValueAsString(new CreateUserCommand("nuevo",name,"new@example.com",PASSWORD,customer.getRole().getId())))).andExpect(status().isBadRequest());
+      mvc.perform(put("/api/users/"+customer.getId()).with(as(admin)).with(csrf()).contentType("application/json")
+        .content(json.writeValueAsString(new UpdateUserCommand(name,customer.getEmail(),customer.getRole().getId())))).andExpect(status().isBadRequest());
+      mvc.perform(post("/api/auth/registro").with(csrf()).contentType("application/json")
+        .content(json.writeValueAsString(new RegisterUserCommand(name,"nuevo","new@example.com",PASSWORD)))).andExpect(status().isBadRequest());
+      assertThrows(DomainException.class,()->inventory.create(body));
+    }
+    assertEquals(productCount,products.count());assertEquals(userCount,userRows.count());
+    mvc.perform(post("/api/inventory/products").with(as(admin)).with(csrf()).contentType("application/json")
+      .content(json.writeValueAsString(new ProductCommand("ACCENT-1","Muñeca de colección",category.id(),BigDecimal.TEN,30))))
+      .andExpect(status().isCreated()).andExpect(jsonPath("$.name").value("Muñeca de colección"));
+  }
+  @Test
+  void saleRejectsInvalidCustomerNameWithoutChangingStock() throws Exception {
+    var p=product("BAD-NAME",40);
+    mvc.perform(post("/api/sales").with(as(seller)).with(csrf()).contentType("application/json")
+      .content(json.writeValueAsString(new SaleCommand(List.of(new SaleItem(p.id(),1)),"EFECTIVO",null,"Ana123",BigDecimal.ZERO))))
+      .andExpect(status().isBadRequest());
+    assertEquals(40,stock(p.id()));assertEquals(0,sales.count());
   }
 
 }

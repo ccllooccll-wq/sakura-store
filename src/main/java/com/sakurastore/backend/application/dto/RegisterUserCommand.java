@@ -8,6 +8,7 @@ public class RegisterUserCommand {
 
   @NotBlank(message = "El nombre es obligatorio.")
   @jakarta.validation.constraints.Size(max = 100)
+  @jakarta.validation.constraints.Pattern(regexp = com.sakurastore.backend.domain.model.NameRules.PATTERN, message = com.sakurastore.backend.domain.model.NameRules.MESSAGE)
   private String nombre;
 
   @NotBlank(message = "El nombre de usuario es obligatorio.")

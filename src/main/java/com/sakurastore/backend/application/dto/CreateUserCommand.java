@@ -9,6 +9,7 @@ public class CreateUserCommand {
 
   @NotBlank
   @Size(max = 100)
+  @jakarta.validation.constraints.Pattern(regexp = com.sakurastore.backend.domain.model.NameRules.PATTERN, message = com.sakurastore.backend.domain.model.NameRules.MESSAGE)
   private String fullName;
 
   @NotBlank
