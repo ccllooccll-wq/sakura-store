@@ -22,6 +22,21 @@
   gap: 12px;
 }
 
+.brand-logo-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 12px rgba(255, 117, 160, 0.4);
+  border: 1px solid rgba(255, 117, 160, 0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.brand-logo-img:hover {
+  transform: scale(1.05) rotate(4deg);
+  box-shadow: 0 0 16px rgba(255, 117, 160, 0.7);
+}
+
 .logo-icon {
   font-size: 1.8rem;
   filter: drop-shadow(0 0 10px rgba(255, 117, 160, 0.6));
@@ -119,7 +134,7 @@
   color: #8be9fd;
   border: 1px solid rgba(139, 233, 253, 0.4);
 }
-.role-proveedor {
+.role-cliente {
   background: rgba(255, 184, 108, 0.2);
   color: #ffb86c;
   border: 1px solid rgba(255, 184, 108, 0.4);
@@ -150,7 +165,7 @@
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 1100px) {
   .navbar-container {
     flex-wrap: wrap;
     gap: 12px;
@@ -159,6 +174,7 @@
     order: 3;
     width: 100%;
     gap: 8px;
+    flex-wrap: wrap;
   }
   .user-name {
     max-width: 130px;

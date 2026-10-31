@@ -11,14 +11,14 @@ import { InventoryComponent } from "./inventory/inventory.component";
 
 describe("Roles e inventario", () => {
   const roles = [
-    { id: 7, name: "ROLE_ADMIN" }, { id: 23, name: "ROLE_VENDEDOR" }, { id: 41, name: "ROLE_PROVEEDOR" },
+    { id: 7, name: "ROLE_ADMIN" }, { id: 23, name: "ROLE_VENDEDOR" }, { id: 41, name: "ROLE_CLIENTE" },
   ];
   const user = { id: 2, username: "demo", fullName: "Demo", email: "demo@example.com", roleId: 23, roleName: "ROLE_VENDEDOR", active: true };
   const usersPage = { content: [user], totalElements: 1, totalPages: 1, number: 0, size: 10 };
   const product: Product = { id: 1, sku: "SAK-001", name: "Demo", categoryId: 2, categoryName: "Accesorios", price: 10, stock: 50, minStock: 30, active: true };
   let admin: boolean;
   let users: { getUsers: ReturnType<typeof vi.fn>; getRoles: ReturnType<typeof vi.fn>; createUser: ReturnType<typeof vi.fn>; deleteUser: ReturnType<typeof vi.fn> };
-  let inventory: { products: ReturnType<typeof vi.fn>; categories: ReturnType<typeof vi.fn>; movements: ReturnType<typeof vi.fn>; move: ReturnType<typeof vi.fn>; save: ReturnType<typeof vi.fn>; status: ReturnType<typeof vi.fn>; category: ReturnType<typeof vi.fn> };
+  let inventory: { summary: ReturnType<typeof vi.fn>; products: ReturnType<typeof vi.fn>; categories: ReturnType<typeof vi.fn>; movements: ReturnType<typeof vi.fn>; move: ReturnType<typeof vi.fn>; save: ReturnType<typeof vi.fn>; status: ReturnType<typeof vi.fn>; category: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     admin = true;
@@ -26,7 +26,8 @@ describe("Roles e inventario", () => {
     if (!HTMLDialogElement.prototype.showModal) HTMLDialogElement.prototype.showModal = function () { this.open = true; };
     users = { getUsers: vi.fn().mockReturnValue(of(usersPage)), getRoles: vi.fn().mockReturnValue(of(roles)), createUser: vi.fn().mockReturnValue(of(user)), deleteUser: vi.fn().mockReturnValue(of({ mensaje: "Eliminado" })) };
     inventory = {
-      products: vi.fn().mockReturnValue(of([product])), categories: vi.fn().mockReturnValue(of([{ id: 2, name: "Accesorios" }])), movements: vi.fn().mockReturnValue(of([])),
+      summary: vi.fn().mockReturnValue(of({ activeCount: 1, lowCount: 0, units: 50, value: 500 })),
+      products: vi.fn().mockReturnValue(of({ content: [product], totalElements: 1, totalPages: 1, number: 0, size: 10 })), categories: vi.fn().mockReturnValue(of([{ id: 2, name: "Accesorios" }])), movements: vi.fn().mockReturnValue(of([])),
       move: vi.fn().mockReturnValue(of({})), save: vi.fn().mockReturnValue(of(product)), status: vi.fn().mockReturnValue(of(product)), category: vi.fn().mockReturnValue(of({})),
     };
     TestBed.configureTestingModule({ imports: [UserListComponent, InventoryComponent], providers: [
@@ -43,7 +44,7 @@ describe("Roles e inventario", () => {
     await fixture.whenStable();
     expect(fixture.componentInstance.formData.roleId).toBe(23);
     const select: HTMLSelectElement = fixture.nativeElement.querySelector('select[name="roleId"]');
-    const option = Array.from(select.options).find(item => item.textContent?.includes("PROVEEDOR"))!;
+    const option = Array.from(select.options).find(item => item.textContent?.includes("CLIENTE"))!;
     select.value = option.value;
     select.dispatchEvent(new Event("change", { bubbles: true }));
     await fixture.whenStable();
@@ -116,7 +117,7 @@ describe("Roles e inventario", () => {
     expect(inventory.move).not.toHaveBeenCalled();
   });
 
-  it("un proveedor no ve acciones administrativas ni puede ejecutarlas desde el componente", () => {
+  it("un vendedor no ve acciones administrativas ni puede ejecutarlas desde el componente", () => {
     admin = false;
     const fixture = TestBed.createComponent(InventoryComponent);
     fixture.detectChanges();
@@ -131,15 +132,18 @@ describe("Roles e inventario", () => {
     expect(fixture.componentInstance.statusProduct).toBeNull();
   });
 
-  it("el resumen excluye productos inactivos y se actualiza al cambiar el stock", () => {
+  it("el resumen global viene del servidor y se actualiza al recargar", () => {
     const fixture = TestBed.createComponent(InventoryComponent);
-    fixture.componentInstance.products.set([product, { ...product, id: 2, active: false, stock: 1000 }]);
-    expect(fixture.componentInstance.activeCount()).toBe(1);
-    expect(fixture.componentInstance.units()).toBe(50);
-    expect(fixture.componentInstance.value()).toBe(500);
-    fixture.componentInstance.products.set([{ ...product, stock: 20 }]);
-    expect(fixture.componentInstance.lowCount()).toBe(1);
-    expect(fixture.componentInstance.value()).toBe(200);
+    fixture.detectChanges();
+    expect(fixture.componentInstance.summary().activeCount).toBe(1);
+    expect(fixture.componentInstance.summary().units).toBe(50);
+    expect(fixture.componentInstance.summary().value).toBe(500);
+    fixture.componentInstance.products.set([]);
+    expect(fixture.componentInstance.summary().units).toBe(50);
+    inventory.summary.mockReturnValue(of({ activeCount: 1, lowCount: 1, units: 20, value: 200 }));
+    fixture.componentInstance.load();
+    expect(fixture.componentInstance.summary().lowCount).toBe(1);
+    expect(fixture.componentInstance.summary().value).toBe(200);
   });
   it("filtrar vuelve a la página 1 y consulta al servidor con los filtros", () => {
     const fixture = TestBed.createComponent(UserListComponent);
@@ -151,4 +155,9 @@ describe("Roles e inventario", () => {
     expect(users.getUsers).toHaveBeenLastCalledWith(
         expect.objectContaining({ roleId: 23 }), 0, 10);
   });
+ it.each(["Ana123","Ana@","Ana_María"])("bloquea %s en usuarios y productos",name=>{
+ const u=TestBed.createComponent(UserListComponent);u.detectChanges();u.componentInstance.openCreateModal();u.componentInstance.formData.fullName=name;u.componentInstance.saveUser();expect(users.createUser).not.toHaveBeenCalled();
+ const p=TestBed.createComponent(InventoryComponent);p.detectChanges();p.componentInstance.openProduct();p.componentInstance.form.name=name;p.componentInstance.saveProduct();expect(inventory.save).not.toHaveBeenCalled();
+ });
+
 });

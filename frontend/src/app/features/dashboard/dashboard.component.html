@@ -1,24 +1,77 @@
 <main class="dashboard-shell">
-    <div class="dashboard-heading">
-        <p class="eyebrow">SAKURA STORE / PANEL</p>
-        <h1>Productos con stock bajo</h1>
-        <p class="muted">Reposición pendiente en tu catálogo.</p>
+    <div class="dashboard-hero">
+        <div class="hero-text">
+            <p class="eyebrow"><i class="fa-solid fa-sparkles"></i> SAKURA STORE / PANEL PRINCIPAL</p>
+            <h1>{{ hasLowStock() ? "Atención: Existencias Críticas" : "Bienvenido a Sakura Store" }}</h1>
+            <p class="hero-desc">
+                {{ hasLowStock() ? "Productos con bajo stock detectados. Se recomienda gestionar reposición de mercadería." : "Panel interactivo de control de existencias, novedades y accesos rápidos." }}
+            </p>
+        </div>
+        <div class="hero-badge">
+            <img src="assets/logo.png" alt="Logo Sakura" class="hero-logo" />
+        </div>
     </div>
 
+    <!-- Quick Stats Cards con Iconos y Temática Sakura -->
+    @if (summary(); as s) {
+        <section class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon items">
+                    <i class="fa-solid fa-box-archive"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">Productos Activos</span>
+                    <strong class="stat-value">{{ s.activeCount }}</strong>
+                </div>
+            </div>
+
+            <div class="stat-card" [class.alert]="s.lowCount > 0">
+                <div class="stat-icon warning">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">Stock Crítico</span>
+                    <strong class="stat-value">{{ s.lowCount }}</strong>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon units">
+                    <i class="fa-solid fa-layer-group"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">Total Unidades</span>
+                    <strong class="stat-value">{{ s.units | number }}</strong>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon value">
+                    <i class="fa-solid fa-coins"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">Valor en Existencia</span>
+                    <strong class="stat-value">Bs {{ s.value | number: "1.2-2" }}</strong>
+                </div>
+            </div>
+        </section>
+    }
+
+    <!-- Carrusel de Novedades e Imágenes -->
     @if (loading()) {
-        <p class="state" role="status">Cargando productos…</p>
+        <p class="state" role="status">Cargando novedades…</p>
     } @else if (error()) {
         <div class="state error" role="alert">{{ error() }}</div>
     } @else if (!hasSlides()) {
         <div class="state">
             <strong>Todo en orden</strong>
-            <p class="muted">No hay productos con stock bajo.</p>
+            <p class="muted">No hay novedades registradas.</p>
         </div>
     } @else {
         <section
                 class="carousel"
                 aria-roledescription="carrusel"
-                aria-label="Productos con stock bajo"
+                aria-label="Carrusel de productos Sakura Store"
                 (mouseenter)="pause()"
                 (mouseleave)="resume()"
         >
@@ -32,9 +85,25 @@
                             [class.ok]="slide.tone === 'ok'"
                             [attr.aria-hidden]="i !== current()"
                     >
-                        <h2>{{ slide.title }}</h2>
-                        <p class="slide-subtitle">{{ slide.subtitle }}</p>
-                        <strong class="slide-value">{{ slide.value }}</strong>
+                        <div class="slide-content">
+                            @if (slide.badge) {
+                                <span class="slide-badge" [class.badge-warning]="slide.tone === 'warning'">
+                                    {{ slide.badge }}
+                                </span>
+                            }
+                            <h2>{{ slide.title }}</h2>
+                            <p class="slide-subtitle">{{ slide.subtitle }}</p>
+                            <div class="slide-value-box">
+                                <span class="value-label">Detalle:</span>
+                                <strong class="slide-value">{{ slide.value }}</strong>
+                            </div>
+                        </div>
+
+                        @if (slide.imageUrl) {
+                            <div class="slide-image-container">
+                                <img [src]="slide.imageUrl" [alt]="slide.title" class="slide-image" />
+                            </div>
+                        }
                     </article>
                 }
             </div>
@@ -56,4 +125,46 @@
             }
         </section>
     }
+
+    <!-- Quick Actions Cards Visuales / Accesos Directos -->
+    <section class="quick-actions-section">
+        <h3><i class="fa-solid fa-compass"></i> Accesos Directos</h3>
+        <div class="quick-actions-grid">
+            <a routerLink="/ventas" class="action-card">
+                <div class="action-card-bg"></div>
+                <div class="action-card-icon cart">
+                    <i class="fa-solid fa-cart-shopping"></i>
+                </div>
+                <div class="action-card-content">
+                    <h4>Punto de Venta</h4>
+                    <p>Registrar ventas, cobrar pedidos o adquirir productos</p>
+                </div>
+                <span class="action-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+            </a>
+
+            <a routerLink="/inventario" class="action-card">
+                <div class="action-card-bg"></div>
+                <div class="action-card-icon inventory">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                </div>
+                <div class="action-card-content">
+                    <h4>Inventario</h4>
+                    <p>Catálogo de existencias, ajuste de stock y precios</p>
+                </div>
+                <span class="action-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+            </a>
+
+            <a routerLink="/compras" class="action-card">
+                <div class="action-card-bg"></div>
+                <div class="action-card-icon purchases">
+                    <i class="fa-solid fa-truck-ramp-box"></i>
+                </div>
+                <div class="action-card-content">
+                    <h4>Reposición</h4>
+                    <p>Entrada de mercadería y control de costos de proveedores</p>
+                </div>
+                <span class="action-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+            </a>
+        </div>
+    </section>
 </main>

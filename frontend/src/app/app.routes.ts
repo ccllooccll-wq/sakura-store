@@ -1,5 +1,5 @@
 import { Routes } from "@angular/router";
-import { authGuard, adminGuard } from "./core/guards/auth.guard";
+import { authGuard, adminGuard, staffGuard } from "./core/guards/auth.guard";
 
 export const routes: Routes = [
   { path: "", redirectTo: "login", pathMatch: "full" },
@@ -16,10 +16,12 @@ export const routes: Routes = [
     loadComponent: () => import("./shared/components/app-shell/app-shell.component").then(m => m.AppShellComponent),
     canActivate: [authGuard],
     children: [
-      { path: "dashboard", loadComponent: () => import("./features/dashboard/dashboard.component").then(m => m.DashboardComponent) },
+      { path: "dashboard", loadComponent: () => import("./features/dashboard/dashboard.component").then(m => m.DashboardComponent), canActivate: [adminGuard] },
       { path: "usuarios", loadComponent: () => import("./features/users/user-list/user-list.component").then(m => m.UserListComponent), canActivate: [adminGuard] },
-      { path: "inventario", loadComponent: () => import("./features/inventory/inventory.component").then(m => m.InventoryComponent) },
+      { path: "inventario", loadComponent: () => import("./features/inventory/inventory.component").then(m => m.InventoryComponent), canActivate: [staffGuard] },
       { path: "ventas", loadComponent: () => import("./features/sales/sales.component").then(m => m.SalesComponent) },
+      { path: "reportes", loadComponent: () => import("./features/reports/reports.component").then(m => m.ReportsComponent), canActivate: [staffGuard] },
+      { path: "compras", loadComponent: () => import("./features/purchases/purchases.component").then(m => m.PurchasesComponent), canActivate: [adminGuard] },
     ],
   },
   { path: "**", redirectTo: "login" },

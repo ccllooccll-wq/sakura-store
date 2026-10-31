@@ -1,27 +1,33 @@
-import { Component, OnInit, computed, inject, signal } from "@angular/core";
+import { NAME_PATTERN, NAME_MESSAGE, validName } from "../../core/validators/name.validator";
+import { Component, DestroyRef, OnInit, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { HttpErrorResponse } from "@angular/common/http";
 import { httpErrorMessage } from "../../core/utils/http-error";
-import { forkJoin } from "rxjs";
+import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
+import { EMPTY, Subject, catchError, debounceTime, forkJoin, switchMap, tap } from "rxjs";
 import { AuthService } from "../../core/services/auth.service";
 import { InventoryService } from "../../core/services/inventory.service";
 import { ConfirmationDialogComponent } from "../../shared/components/confirmation-dialog/confirmation-dialog.component";
+import { PaginationComponent } from "../../shared/components/pagination/pagination.component";
 import {
   Product,
   ProductCommand,
   Category,
   Movement,
   MovementCommand,
+  InventorySummary,
+  ProductFilters,
 } from "../../core/models/inventory.model";
 @Component({
   selector: "app-inventory",
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmationDialogComponent],
+  imports: [CommonModule, FormsModule, ConfirmationDialogComponent, PaginationComponent],
   templateUrl: "./inventory.component.html",
   styleUrls: ["./inventory.component.css"],
 })
 export class InventoryComponent implements OnInit {
+  readonly namePattern = NAME_PATTERN;
   readonly products = signal<Product[]>([]);
   categories: Category[] = [];
   movements: Movement[] = [];
@@ -29,9 +35,16 @@ export class InventoryComponent implements OnInit {
   saving = false;
   error = "";
   success = "";
-  readonly query = signal("");
-  readonly onlyLow = signal(false);
-  page = 0;
+  readonly summary = signal<InventorySummary>({ activeCount: 0, lowCount: 0, units: 0, value: 0 });
+  filters: ProductFilters = { name: "", sku: "", categoryId: 0, status: "", lowStock: false };
+  readonly pageSizes = [10, 20, 50];
+  pageSize = 10;
+  productPage = 0;
+  totalPages = 0;
+  totalProducts = 0;
+  page = 0; // página del historial de movimientos
+  private readonly reload$ = new Subject<void>();
+  private readonly typing$ = new Subject<void>();
   tab: "products" | "movements" = "products";
   modal: "product" | "movement" | "category" | null = null;
   editingId?: number;
@@ -53,31 +66,96 @@ export class InventoryComponent implements OnInit {
   };
   private readonly api = inject(InventoryService);
   readonly auth = inject(AuthService);
+  constructor() {
+    // Carga de productos: switchMap descarta respuestas viejas si el usuario sigue filtrando.
+    this.reload$
+        .pipe(
+            tap(() => (this.loading = true)),
+            switchMap(() =>
+                this.api.products(this.filters, this.productPage, this.pageSize).pipe(
+                    catchError((e) => {
+                      this.fail(e);
+                      return EMPTY;
+                    }),
+                ),
+            ),
+            takeUntilDestroyed(inject(DestroyRef)),
+        )
+        .subscribe((res) => {
+          // Si la página quedó fuera de rango (por ejemplo, se filtró), volver a la última válida.
+          if (!res.content.length && this.productPage > 0 && res.totalPages > 0) {
+            this.productPage = res.totalPages - 1;
+            this.reload$.next();
+            return;
+          }
+          this.products.set(res.content);
+          this.totalProducts = res.totalElements;
+          this.totalPages = res.totalPages;
+          this.loading = false;
+        });
+
+    // Los inputs de texto esperan 300 ms antes de consultar al servidor.
+    this.typing$
+        .pipe(debounceTime(300), takeUntilDestroyed(inject(DestroyRef)))
+        .subscribe(() => this.applyFilters());
+  }
+
   ngOnInit() {
     this.load();
   }
-  readonly filtered = computed(() => {
-    const q = this.query().trim().toLowerCase();
-    return this.products().filter((p) =>
-      (p.name + " " + p.sku + " " + p.categoryName).toLowerCase().includes(q) &&
-      (!this.onlyLow() || (p.active && p.stock <= p.minStock)));
-  });
-  readonly activeCount = computed(() => this.products().filter(p => p.active).length);
-  readonly lowCount = computed(() => this.products().filter(p => p.active && p.stock <= p.minStock).length);
-  readonly units = computed(() => this.products().filter(p => p.active).reduce((n, p) => n + p.stock, 0));
-  readonly value = computed(() => this.products().filter(p => p.active).reduce((n, p) => n + p.stock * p.price, 0));
+
+  onTyping() {
+    this.typing$.next();
+  }
+
+  applyFilters() {
+    this.productPage = 0;
+    this.reload$.next();
+  }
+
+  clearFilters() {
+    this.filters = { name: "", sku: "", categoryId: 0, status: "", lowStock: false };
+    this.applyFilters();
+  }
+
+  hasFilters() {
+    const f = this.filters;
+    return !!(f.name.trim() || f.sku.trim() || f.categoryId || f.status || f.lowStock);
+  }
+
+  changeProductPage(delta: number) {
+    const next = this.productPage + delta;
+    if (this.loading || next < 0 || next >= this.totalPages) return;
+    this.productPage = next;
+    this.reload$.next();
+  }
+
+  onProductPageChange(next: number) {
+    if (this.loading || next < 0 || next >= this.totalPages) return;
+    this.productPage = next;
+    this.reload$.next();
+  }
+
+  onPageSizeChange(newSize: number) {
+    this.pageSize = newSize;
+    this.changePageSize();
+  }
+
+  changePageSize() {
+    this.applyFilters();
+  }
   load() {
     this.loading = true;
+    this.reload$.next();
     forkJoin({
-      products: this.api.products(),
       categories: this.api.categories(),
       movements: this.api.movements(this.page),
+      summary: this.api.summary(),
     }).subscribe({
       next: (r) => {
-        this.products.set(r.products);
         this.categories = r.categories;
         this.movements = r.movements;
-        this.loading = false;
+        this.summary.set(r.summary);
       },
       error: (e) => {
         this.loading = false;
@@ -87,6 +165,7 @@ export class InventoryComponent implements OnInit {
   }
   fail(e: HttpErrorResponse) {
     this.saving = false;
+    this.loading = false;
     this.error = httpErrorMessage(e, "No se pudo completar la operación.");
   }
   openProduct(p?: Product) {
@@ -112,6 +191,7 @@ export class InventoryComponent implements OnInit {
   }
   saveProduct(formValid = true) {
     if (!formValid || !this.auth.canManageInventory() || this.saving) return;
+    if (!validName(this.form.name)) { this.error = NAME_MESSAGE; return; }
     if (!this.categories.some(c => c.id === this.form.categoryId)) {
       this.error = "Selecciona una categoría activa. Si no hay ninguna, crea una primero.";
       return;
@@ -190,6 +270,12 @@ export class InventoryComponent implements OnInit {
   changePage(delta: number) {
     if (this.loading) return;
     this.page = Math.max(0, this.page + delta);
+    this.load();
+  }
+
+  onMovementsPageChange(page: number) {
+    if (this.loading) return;
+    this.page = Math.max(0, page);
     this.load();
   }
 }

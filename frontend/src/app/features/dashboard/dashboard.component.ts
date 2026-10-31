@@ -1,16 +1,17 @@
 import { Component, OnDestroy, OnInit, computed, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
+import { RouterModule } from "@angular/router";
 import { HttpErrorResponse } from "@angular/common/http";
 import { InventoryService } from "../../core/services/inventory.service";
 import { DashboardSlide } from "../../core/models/dashboard.model";
-import { ProductFilters } from "../../core/models/inventory.model";
+import { InventorySummary, ProductFilters } from "../../core/models/inventory.model";
 import { httpErrorMessage } from "../../core/utils/http-error";
-import { lowStockSlide } from "./dashboard-slides";
+import { defaultFeaturedSlides, lowStockSlide } from "./dashboard-slides";
 
 @Component({
     selector: "app-dashboard",
     standalone: true,
-    imports: [CommonModule],
+    imports: [CommonModule, RouterModule],
     templateUrl: "./dashboard.component.html",
     styleUrls: ["./dashboard.component.css"],
 })
@@ -23,11 +24,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
     readonly current = signal(0);
     readonly hasSlides = computed(() => this.slides().length > 0);
     readonly currentSlide = computed(() => this.slides()[this.current()] ?? null);
+    readonly hasLowStock = signal(false);
+    readonly summary = signal<InventorySummary | null>(null);
     private timer?: ReturnType<typeof setInterval>;
 
     ngOnInit(): void {
         this.loadLowStock();
+        this.loadSummary();
     }
+
+    private loadSummary(): void {
+        this.api.summary().subscribe({
+            next: (data) => this.summary.set(data),
+            error: () => {
+                // Silencioso para no romper si no hay datos de resumen
+            }
+        });
+    }
+
     next(): void {
         const total = this.slides().length;
         if (total) this.current.set((this.current() + 1) % total);
@@ -40,7 +54,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     goTo(index: number): void {
         this.current.set(index);
-        this.startAutoPlay(); // reinicia la cuenta para no saltar justo después del clic
+        this.startAutoPlay();
     }
 
     pause(): void {
@@ -73,7 +87,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
         };
         this.api.products(filters, 0, 12).subscribe({
             next: (page) => {
-                this.slides.set(page.content.map(lowStockSlide));
+                if (page.content && page.content.length > 0) {
+                    this.slides.set(page.content.map(lowStockSlide));
+                    this.hasLowStock.set(true);
+                } else {
+                    // Si no hay productos con stock bajo, mostramos los slides ilustrados de la tienda
+                    this.slides.set(defaultFeaturedSlides());
+                    this.hasLowStock.set(false);
+                }
                 this.current.set(0);
                 this.loading.set(false);
                 this.startAutoPlay();

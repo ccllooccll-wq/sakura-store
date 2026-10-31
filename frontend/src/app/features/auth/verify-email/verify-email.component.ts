@@ -54,7 +54,7 @@ export class VerifyEmailComponent implements OnInit {
         this.successMessage =
           res.mensaje || "¡Código verificado con éxito! Redirigiendo...";
         if (res.user || this.authService.isLoggedIn()) {
-          void this.router.navigate(["/inventario"]);
+          void this.router.navigate([(res.user?.roleName ?? this.authService.getStoredUser()?.roleName) === "ROLE_CLIENTE" ? "/ventas" : "/inventario"]);
         }
       },
       error: (err: HttpErrorResponse) => {

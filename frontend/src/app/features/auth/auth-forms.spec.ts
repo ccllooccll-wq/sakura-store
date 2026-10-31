@@ -17,7 +17,7 @@ describe("Formularios de acceso con OTP", () => {
     register: ReturnType<typeof vi.fn>; login: ReturnType<typeof vi.fn>;
     verifyEmail: ReturnType<typeof vi.fn>; resendCode: ReturnType<typeof vi.fn>;
     requestPasswordReset: ReturnType<typeof vi.fn>; resetPassword: ReturnType<typeof vi.fn>;
-    isLoggedIn: ReturnType<typeof vi.fn>;
+    isLoggedIn: ReturnType<typeof vi.fn>; getStoredUser: ReturnType<typeof vi.fn>;
   };
   let navigate: MockInstance<Router["navigate"]>;
   beforeEach(() => {
@@ -29,6 +29,7 @@ describe("Formularios de acceso con OTP", () => {
       requestPasswordReset: vi.fn().mockReturnValue(of({ mensaje: "Si existe la cuenta, recibirás un código" })),
       resetPassword: vi.fn().mockReturnValue(of({ mensaje: "Contraseña actualizada" })),
       isLoggedIn: vi.fn().mockReturnValue(true),
+      getStoredUser: vi.fn().mockReturnValue({ roleName: "ROLE_VENDEDOR" }),
     };
     TestBed.configureTestingModule({
       imports: [RegisterComponent, ResetPasswordComponent, LoginComponent, VerifyEmailComponent],
@@ -111,6 +112,15 @@ describe("Formularios de acceso con OTP", () => {
     fixture.componentInstance.onVerify();
     expect(auth.verifyEmail).toHaveBeenCalledWith("demo@example.com", "123456");
     expect(navigate).toHaveBeenCalledWith(["/inventario"]);
+  });
+
+  it("abre el carrito del cliente después de verificar su OTP", () => {
+    auth.verifyEmail.mockReturnValue(of({ user: { roleName: "ROLE_CLIENTE" } }));
+    const fixture = TestBed.createComponent(VerifyEmailComponent);
+    fixture.detectChanges();
+    fixture.componentInstance.codigo = "123456";
+    fixture.componentInstance.onVerify();
+    expect(navigate).toHaveBeenCalledWith(["/ventas"]);
   });
 
   it("la recuperación exige correo válido, OTP numérico y confirmación de contraseña", () => {

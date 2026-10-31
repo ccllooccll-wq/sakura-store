@@ -45,8 +45,8 @@ export class NavbarComponent {
         return "ADMINISTRADOR";
       case "ROLE_VENDEDOR":
         return "VENDEDOR";
-      case "ROLE_PROVEEDOR":
-        return "PROVEEDOR";
+      case "ROLE_CLIENTE":
+        return "CLIENTE";
       default:
         return roleName;
     }
@@ -58,8 +58,8 @@ export class NavbarComponent {
         return "role-admin";
       case "ROLE_VENDEDOR":
         return "role-vendedor";
-      case "ROLE_PROVEEDOR":
-        return "role-proveedor";
+      case "ROLE_CLIENTE":
+        return "role-cliente";
       default:
         return "";
     }

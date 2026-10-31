@@ -36,7 +36,7 @@ export class LoginComponent {
             queryParams: { email: res.email },
           });
         } else {
-          this.router.navigate(["/inventario"]);
+          this.router.navigate([res.user?.roleName === "ROLE_CLIENTE" ? "/ventas" : "/inventario"]);
         }
       },
       error: (err: HttpErrorResponse) => {

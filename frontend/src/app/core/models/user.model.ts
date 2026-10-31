@@ -1,6 +1,6 @@
 export interface Role {
   id: number;
-  name: "ROLE_ADMIN" | "ROLE_VENDEDOR" | "ROLE_PROVEEDOR";
+  name: "ROLE_ADMIN" | "ROLE_VENDEDOR" | "ROLE_CLIENTE";
   description?: string;
 }
 

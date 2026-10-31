@@ -1,12 +1,21 @@
 import { Injectable, inject } from "@angular/core";
 import { HttpClient, HttpParams } from "@angular/common/http";
-import { Category, Product, ProductCommand, Movement, MovementCommand } from "../models/inventory.model";
+import { Category, Product, ProductCommand, Movement, MovementCommand, Page, ProductFilters, InventorySummary } from "../models/inventory.model";
 @Injectable({ providedIn: "root" })
 export class InventoryService {
   private readonly url = "/api/inventory";
   private readonly http = inject(HttpClient);
-  products() {
-    return this.http.get<Product[]>(`${this.url}/products`);
+  products(f: ProductFilters, page = 0, size = 10) {
+    let params = new HttpParams().set("page", page).set("size", size);
+    if (f.name.trim()) params = params.set("name", f.name.trim());
+    if (f.sku.trim()) params = params.set("sku", f.sku.trim());
+    if (f.categoryId > 0) params = params.set("categoryId", f.categoryId);
+    if (f.status) params = params.set("status", f.status);
+    if (f.lowStock) params = params.set("lowStock", true);
+    return this.http.get<Page<Product>>(`${this.url}/products`, { params });
+  }
+  summary() {
+    return this.http.get<InventorySummary>(`${this.url}/summary`);
   }
   categories() {
     return this.http.get<Category[]>(`${this.url}/categories`);

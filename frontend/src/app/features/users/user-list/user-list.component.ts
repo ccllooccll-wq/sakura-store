@@ -1,3 +1,4 @@
+import { NAME_PATTERN, NAME_MESSAGE, validName } from "../../../core/validators/name.validator";
 import { Component, DestroyRef, OnInit, OnDestroy, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { EMPTY, Subject, catchError, debounceTime, switchMap, tap } from "rxjs";
@@ -8,6 +9,7 @@ import { httpErrorMessage } from "../../../core/utils/http-error";
 import { UserService } from "../../../core/services/user.service";
 import { AuthService } from "../../../core/services/auth.service";
 import { ConfirmationDialogComponent } from "../../../shared/components/confirmation-dialog/confirmation-dialog.component";
+import { PaginationComponent } from "../../../shared/components/pagination/pagination.component";
 import {
   CreateUserRequest,
   Role,
@@ -19,11 +21,12 @@ import {
 @Component({
   selector: "app-user-list",
   standalone: true,
-  imports: [CommonModule, FormsModule, ConfirmationDialogComponent],
+  imports: [CommonModule, FormsModule, ConfirmationDialogComponent, PaginationComponent],
   templateUrl: "./user-list.component.html",
   styleUrls: ["./user-list.component.css"],
 })
 export class UserListComponent implements OnInit, OnDestroy {
+  readonly namePattern = NAME_PATTERN;
   readonly users = signal<User[]>([]);
   readonly roles = signal<Role[]>([]);
   rolesLoading = false;
@@ -130,6 +133,17 @@ export class UserListComponent implements OnInit, OnDestroy {
     this.reload$.next();
   }
 
+  onUserPageChange(next: number): void {
+    if (this.loading || next < 0 || next >= this.totalPages) return;
+    this.userPage = next;
+    this.reload$.next();
+  }
+
+  onPageSizeChange(newSize: number): void {
+    this.pageSize = newSize;
+    this.changePageSize();
+  }
+
   changePageSize(): void {
     this.applyFilters();
   }
@@ -186,6 +200,7 @@ export class UserListComponent implements OnInit, OnDestroy {
 
   saveUser(formValid = true): void {
     if (!formValid || this.saving || !this.isAdmin) return;
+    if (!validName(this.formData.fullName)) { this.errorMessage = NAME_MESSAGE; return; }
     if (!this.roles().some(r => r.id === this.formData.roleId)) {
       this.errorMessage = "Selecciona un rol disponible antes de guardar.";
       return;
@@ -282,8 +297,8 @@ export class UserListComponent implements OnInit, OnDestroy {
         return "ADMIN";
       case "ROLE_VENDEDOR":
         return "VENDEDOR";
-      case "ROLE_PROVEEDOR":
-        return "PROVEEDOR";
+      case "ROLE_CLIENTE":
+        return "CLIENTE";
       default:
         return roleName;
     }
@@ -295,8 +310,8 @@ export class UserListComponent implements OnInit, OnDestroy {
         return "badge-admin";
       case "ROLE_VENDEDOR":
         return "badge-vendedor";
-      case "ROLE_PROVEEDOR":
-        return "badge-proveedor";
+      case "ROLE_CLIENTE":
+        return "badge-cliente";
       default:
         return "";
     }

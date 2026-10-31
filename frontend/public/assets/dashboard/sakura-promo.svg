@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="100%" height="100%">
+  <defs>
+    <linearGradient id="sakuraGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff75a0" />
+      <stop offset="100%" stop-color="#ffb86c" />
+    </linearGradient>
+    <linearGradient id="bgCardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2a2438" />
+      <stop offset="100%" stop-color="#1b1726" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#ff75a0" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background Soft Circles -->
+  <rect width="400" height="300" rx="20" fill="url(#bgCardGrad)" />
+  <circle cx="200" cy="150" r="110" fill="#ff75a0" opacity="0.08" />
+  <circle cx="200" cy="150" r="85" fill="#ff75a0" opacity="0.12" />
+
+  <!-- Sakura Petals Falling -->
+  <path d="M70,50 Q85,45 80,65 Q65,60 70,50 Z" fill="#ff75a0" opacity="0.6" transform="rotate(15, 75, 55)" />
+  <path d="M330,70 Q345,65 340,85 Q325,80 330,70 Z" fill="#ffb86c" opacity="0.5" transform="rotate(-25, 335, 75)" />
+  <path d="M90,220 Q105,215 100,235 Q85,230 90,220 Z" fill="#ff75a0" opacity="0.4" transform="rotate(40, 95, 225)" />
+  <path d="M320,230 Q335,225 330,245 Q315,240 320,230 Z" fill="#ff75a0" opacity="0.6" transform="rotate(-15, 325, 235)" />
+
+  <!-- Main Store Bag & Gift Box Centerpiece -->
+  <g filter="url(#shadow)">
+    <!-- Shopping Bag -->
+    <path d="M145,130 L155,230 Q156,238 165,238 L235,238 Q244,238 245,230 L255,130 Z" fill="url(#sakuraGrad)" />
+    <!-- Bag Handle -->
+    <path d="M175,130 C175,95 225,95 225,130" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" />
+    <circle cx="175" cy="130" r="4" fill="#ffffff" />
+    <circle cx="225" cy="130" r="4" fill="#ffffff" />
+    <!-- Bag Fold and Star -->
+    <path d="M147,142 L253,142" stroke="#ffffff" stroke-opacity="0.3" stroke-width="2" />
+    <!-- Cherry Blossom on Bag -->
+    <g transform="translate(200, 185) scale(0.9)">
+      <circle cx="0" cy="0" r="8" fill="#ffeaa7" />
+      <path d="M0,-8 C-7,-22 7,-22 0,-8" fill="#ffffff" opacity="0.9"/>
+      <path d="M8,0 C22,-7 22,7 8,0" fill="#ffffff" opacity="0.9"/>
+      <path d="M0,8 C7,22 -7,22 0,8" fill="#ffffff" opacity="0.9"/>
+      <path d="M-8,0 C-22,7 -22,-7 -8,0" fill="#ffffff" opacity="0.9"/>
+      <path d="M6,-6 C18,-18 18,-6 6,-6" fill="#ffffff" opacity="0.9"/>
+      <path d="M6,6 C18,6 18,18 6,6" fill="#ffffff" opacity="0.9"/>
+      <path d="M-6,6 C-6,18 -18,18 -6,6" fill="#ffffff" opacity="0.9"/>
+      <path d="M-6,-6 C-18,-6 -18,-18 -6,-6" fill="#ffffff" opacity="0.9"/>
+    </g>
+  </g>
+
+  <!-- Sparkles -->
+  <path d="M130,90 Q130,105 140,105 Q130,105 130,120 Q130,105 120,105 Q130,105 130,90 Z" fill="#ffd166" />
+  <path d="M275,110 Q275,120 282,120 Q275,120 275,130 Q275,120 268,120 Q275,120 275,110 Z" fill="#ffd166" />
+</svg>

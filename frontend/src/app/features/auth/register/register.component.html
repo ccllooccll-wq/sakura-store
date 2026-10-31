@@ -2,7 +2,10 @@
   <div class="sakura-bg-glow"></div>
   <div class="glass-card auth-card">
     <div class="auth-header">
-      <div class="brand-badge"><span class="flower">🌸</span><span>SAKURA STORE</span></div>
+      <div class="auth-logo-wrap">
+        <img src="assets/logo.png" alt="Sakura Store Logo" class="auth-logo-img" />
+      </div>
+      <div class="brand-badge"><span>SAKURA STORE</span></div>
       <h2>Crear Cuenta</h2><p class="subtitle">Regístrate con tu correo real para activar tu cuenta</p>
     </div>
     @if (errorMessage) { <div class="alert alert-error" role="alert">{{ errorMessage }}</div> }
@@ -11,7 +14,7 @@
         <i class="fa-solid fa-id-card icon" aria-hidden="true"></i>
         <input id="nombre" class="form-control" formControlName="nombre" maxlength="100" autocomplete="name" placeholder="Ej. Álvaro" />
       </div>
-      @if (form.controls.nombre.touched && form.controls.nombre.invalid) { <small class="field-error">Escribe tu nombre, hasta 100 caracteres.</small> }
+      @if (form.controls.nombre.touched && form.controls.nombre.invalid) { <small class="field-error">Solo letras y espacios, hasta 100 caracteres. Sin números ni símbolos.</small> }
       </div>
       <div class="form-group"><label for="username">Nombre de Usuario</label><div class="input-with-icon">
         <i class="fa-solid fa-user icon" aria-hidden="true"></i>

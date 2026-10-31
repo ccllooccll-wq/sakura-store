@@ -27,6 +27,17 @@
               }
             ],
             "styles": [
+              "node_modules/@fortawesome/fontawesome-free/css/all.min.css",
+              "node_modules/@fontsource/outfit/latin-300.css",
+              "node_modules/@fontsource/outfit/latin-400.css",
+              "node_modules/@fontsource/outfit/latin-500.css",
+              "node_modules/@fontsource/outfit/latin-600.css",
+              "node_modules/@fontsource/outfit/latin-700.css",
+              "node_modules/@fontsource/outfit/latin-800.css",
+              "node_modules/@fontsource/plus-jakarta-sans/latin-400.css",
+              "node_modules/@fontsource/plus-jakarta-sans/latin-500.css",
+              "node_modules/@fontsource/plus-jakarta-sans/latin-600.css",
+              "node_modules/@fontsource/plus-jakarta-sans/latin-700.css",
               "src/styles.css"
             ],
             "scripts": []

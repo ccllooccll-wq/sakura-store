@@ -1,0 +1,33 @@
+<section class="reports-shell">
+<header class="page-heading"><div><p class="eyebrow">SAKURA STORE · ANÁLISIS</p><h1>Reportes del <span>negocio</span></h1>
+<p class="muted">Consulta tus ventas, controla las existencias y exporta los resultados.</p></div>
+<button class="export" (click)="download()" [disabled]="loading() || exporting() || !result() || pendingChanges"><i class="fa-solid fa-download" aria-hidden="true"></i> {{ exporting() ? 'Exportando…' : 'Exportar CSV' }}</button></header>
+<form class="filters" (ngSubmit)="apply()">
+<label>Desde<input type="date" name="from" [(ngModel)]="filters.from" required /></label>
+<label>Hasta<input type="date" name="to" [(ngModel)]="filters.to" required /></label>
+@if (stockReport) { <label>Categoría<select name="category" [(ngModel)]="filters.categoryId"><option [ngValue]="null">Todas</option>@for (category of categories; track category.id) { <option [ngValue]="category.id">{{ category.name }}</option> }</select></label> }
+@if (kind === 'movements') {
+<label>Producto ID<input type="number" name="productId" [(ngModel)]="filters.productId" min="1" step="1" placeholder="Todos" /></label>
+<label>Tipo<select name="type" [(ngModel)]="filters.type"><option value="">Todos</option><option>ENTRADA</option><option>SALIDA</option></select></label> }
+<button class="primary" type="submit" [disabled]="loading()">{{ loading() ? 'Consultando…' : 'Aplicar filtros' }}</button></form>
+@if (stockReport && categoryError) { <p role="alert">{{ categoryError }} <button (click)="loadCategories()">Reintentar</button></p> }
+@if (pendingChanges) { <p class="notice">Aplica los filtros para actualizar los resultados y la exportación.</p> }
+@if (summary(); as s) { <div class="metrics" aria-label="Resumen de ventas del período">
+<article><span>Ventas completadas</span><strong>{{ s.salesCount }}</strong></article>
+<article><span>Total vendido</span><strong>{{ money(s.total) }}</strong></article>
+<article><span>Descuentos</span><strong>{{ money(s.discount) }}</strong></article>
+<article><span>Ticket promedio</span><strong>{{ money(s.averageTicket) }}</strong></article></div> }
+<p class="muted scope">El resumen incluye todas las ventas completadas del período. El stock muestra existencias actuales de productos activos y no depende de las fechas.</p>
+<nav class="report-tabs" aria-label="Tipo de reporte">@for (tab of tabs; track tab.id) { <button (click)="select(tab.id)" [class.active]="kind === tab.id" [attr.aria-pressed]="kind === tab.id">{{ tab.label }}</button> }</nav>
+@if (kind === 'top-products') { <p class="notice">Ordenado por unidades vendidas. El importe bruto usa el precio de cada venta, antes de descuentos; el nombre y SKU son los actuales.</p> }
+@if (stockReport) { <p class="notice">Bajo stock: cantidad menor o igual al mínimo. Valor de venta = stock × precio actual; no representa costo ni utilidad.</p> }
+@if (error) { <div class="error" role="alert">{{ error }} <button (click)="load()" [disabled]="loading()">Reintentar</button></div> }
+@if (loading()) { <p class="empty" role="status">Cargando reporte…</p> }
+@if (result(); as data) {
+<div class="table-wrap"><table><thead><tr>@for (c of columns; track c.key) { <th scope="col">{{ c.label }}</th> }</tr></thead>
+<tbody>@for (row of data.content; track $index) { <tr>@for (c of columns; track c.key) { <td [class.numeric]="c.format === 'money'">{{ value(row, c) }}</td> }</tr> }
+@empty { <tr><td [attr.colspan]="columns.length" class="empty">No hay registros con estos filtros.</td></tr> }</tbody></table></div>
+<footer class="pager"><span>{{ data.totalElements }} registros · Página {{ data.totalPages ? page + 1 : 0 }} de {{ data.totalPages }}</span>
+<label>Filas<select [(ngModel)]="size" (ngModelChange)="apply()"><option [ngValue]="10">10</option><option [ngValue]="20">20</option><option [ngValue]="50">50</option></select></label>
+<div><button (click)="changePage(-1)" [disabled]="loading() || pendingChanges || page === 0">Anterior</button><button (click)="changePage(1)" [disabled]="loading() || pendingChanges || page + 1 >= data.totalPages">Siguiente</button></div></footer> }
+</section>

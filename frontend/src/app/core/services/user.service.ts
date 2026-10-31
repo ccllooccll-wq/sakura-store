@@ -9,6 +9,7 @@ import {
   UserFilters,
 } from "../models/user.model";
 import { Page } from "../models/inventory.model";
+import { ApiResponse } from "../models/auth.model";
 
 @Injectable({
   providedIn: "root",
@@ -57,7 +58,8 @@ export class UserService {
         roles.filter(
           (role) =>
             role.name === "ROLE_ADMIN" ||
-            role.name === "ROLE_VENDEDOR",
+            role.name === "ROLE_VENDEDOR" ||
+            role.name === "ROLE_CLIENTE",
         ),
       ),
     );

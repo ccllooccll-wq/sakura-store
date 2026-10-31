@@ -37,6 +37,27 @@
   margin-bottom: 28px;
 }
 
+.auth-logo-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.auth-logo-img {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 0 20px rgba(255, 117, 160, 0.45);
+  border: 2px solid rgba(255, 117, 160, 0.4);
+  background: #fff;
+  transition: transform 0.3s ease;
+}
+
+.auth-logo-img:hover {
+  transform: scale(1.05);
+}
+
 .brand-badge {
   display: inline-flex;
   align-items: center;

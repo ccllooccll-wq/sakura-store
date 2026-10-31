@@ -1,27 +1,36 @@
+import { NAME_PATTERN, NAME_MESSAGE, validName } from "../../core/validators/name.validator";
 import { Component, DestroyRef, OnInit, computed, inject, signal } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
 import { EMPTY, Subject, catchError, debounceTime, switchMap, tap } from "rxjs";
 import { HttpErrorResponse } from "@angular/common/http";
+import { AuthService } from "../../core/services/auth.service";
 import { InventoryService } from "../../core/services/inventory.service";
 import { Product } from "../../core/models/inventory.model";
 import { httpErrorMessage } from "../../core/utils/http-error";
 import { SalesService } from "../../core/services/sales.service";
 import { CartLine, Sale, SaleCommand } from "../../core/models/sales.model";
 
+import { PaginationComponent } from "../../shared/components/pagination/pagination.component";
+
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 @Component({
     selector: "app-sales",
     standalone: true,
-    imports: [CommonModule, FormsModule],
+    imports: [CommonModule, FormsModule, PaginationComponent],
     templateUrl: "./sales.component.html",
     styleUrls: ["./sales.component.css"],
 })
 export class SalesComponent implements OnInit {
+  activeTab: 'pos' | 'history' = 'pos';
+  posStep: 'products' | 'cart' = 'products';
+  readonly namePattern = NAME_PATTERN;
     private readonly inventory = inject(InventoryService);
     private readonly sales = inject(SalesService);
+    private readonly auth = inject(AuthService);
+    readonly isClient = this.auth.getStoredUser()?.roleName === "ROLE_CLIENTE";
 
     readonly saving = signal(false);
     readonly lastSale = signal<Sale | null>(null);
@@ -65,7 +74,7 @@ export class SalesComponent implements OnInit {
                 switchMap(() =>
                     this.inventory
                         .products(
-                            { name: this.searchTerm.trim(), sku: "", categoryId: 0, status: "ACTIVE", lowstock: false },
+                            { name: this.searchTerm.trim(), sku: "", categoryId: 0, status: "ACTIVE", lowStock: false },
                             0,
                             8,
                         )
@@ -154,9 +163,12 @@ export class SalesComponent implements OnInit {
     }
     confirmSale(): void {
         if (this.saving() || !this.cart().length || this.discountInvalid()) return;
+        if (!this.isClient && this.customerName.trim() && !validName(this.customerName)) {
+            this.saleError = NAME_MESSAGE; return;
+        }
         const command: SaleCommand = {
-            customerName: this.customerName.trim() || undefined,
-            discount: this.discount(),
+            customerName: this.isClient ? undefined : this.customerName.trim() || undefined,
+            discount: this.isClient ? 0 : this.discount(),
             items: this.cart().map((l) => ({ productId: l.product.id, quantity: l.quantity })),
         };
         this.saving.set(true);
@@ -205,6 +217,12 @@ export class SalesComponent implements OnInit {
         const next = this.historyPage + delta;
         if (this.historyLoading() || next < 0 || next >= this.historyTotalPages) return;
         this.historyPage = next;
+        this.loadHistory();
+    }
+
+    onHistoryPageChange(page: number): void {
+        if (this.historyLoading() || page < 0 || page >= this.historyTotalPages) return;
+        this.historyPage = page;
         this.loadHistory();
     }
 }

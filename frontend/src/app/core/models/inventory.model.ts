@@ -37,3 +37,26 @@ export interface MovementCommand {
   quantity: number;
   reason: string;
 }
+
+export interface Page<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+}
+
+export interface ProductFilters {
+  name: string;
+  sku: string;
+  categoryId: number;
+  status: "" | "ACTIVE" | "INACTIVE";
+  lowStock: boolean;
+}
+
+export interface InventorySummary {
+  activeCount: number;
+  lowCount: number;
+  units: number;
+  value: number;
+}

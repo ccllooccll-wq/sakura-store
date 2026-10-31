@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="100%" height="100%">
+  <defs>
+    <linearGradient id="magicGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#bd93f9" />
+      <stop offset="100%" stop-color="#ff79c6" />
+    </linearGradient>
+    <linearGradient id="bgDark" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#211d2e" />
+      <stop offset="100%" stop-color="#14111b" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="6" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <rect width="400" height="300" rx="20" fill="url(#bgDark)" />
+  <circle cx="200" cy="150" r="100" fill="#bd93f9" opacity="0.1" />
+
+  <!-- Manga / Cosplay / Otaku Wand & Sakura Star -->
+  <g transform="translate(200, 150)">
+    <!-- Magic circle back -->
+    <circle cx="0" cy="0" r="70" fill="none" stroke="#ff75a0" stroke-width="2" stroke-dasharray="6,4" opacity="0.6" />
+    <circle cx="0" cy="0" r="50" fill="none" stroke="#bd93f9" stroke-width="1.5" opacity="0.8" />
+    
+    <!-- Star Base -->
+    <polygon points="0,-45 13,-13 45,-13 20,7 28,40 0,22 -28,40 -20,7 -45,-13 -13,-13" fill="url(#magicGrad)" filter="url(#glow)"/>
+    <!-- Center Gem -->
+    <circle cx="0" cy="0" r="14" fill="#ffffff" opacity="0.9" />
+    <circle cx="0" cy="0" r="8" fill="#ff75a0" />
+    
+    <!-- Wand staff -->
+    <rect x="-4" y="38" width="8" height="90" rx="4" fill="url(#magicGrad)" />
+    <!-- Wing left -->
+    <path d="M-20,-5 C-45,-25 -55,10 -15,10 Z" fill="#ffffff" opacity="0.8" />
+    <!-- Wing right -->
+    <path d="M20,-5 C45,-25 55,10 15,10 Z" fill="#ffffff" opacity="0.8" />
+  </g>
+
+  <!-- Little magical sparkles -->
+  <circle cx="100" cy="80" r="3" fill="#ffeaa7" />
+  <circle cx="310" cy="90" r="4" fill="#ffeaa7" />
+  <circle cx="90" cy="220" r="2.5" fill="#ff75a0" />
+  <circle cx="320" cy="210" r="3.5" fill="#bd93f9" />
+</svg>

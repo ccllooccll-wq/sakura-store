@@ -4,4 +4,7 @@ export interface DashboardSlide {
     subtitle: string;
     value: string;
     tone: "warning" | "info" | "ok";
+    imageUrl?: string;
+    category?: string;
+    badge?: string;
 }

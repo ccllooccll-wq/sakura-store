@@ -34,11 +34,11 @@ describe("Navbar", () => {
 
   it("actualiza los datos de usuario y oculta Usuarios a un proveedor", () => {
     const fixture = TestBed.createComponent(NavbarComponent);
-    users.next({ id: 1, username: "proveedor", fullName: "Proveedor Demo", email: "demo@example.com", roleId: 3, roleName: "ROLE_PROVEEDOR", active: true });
+    users.next({ id: 1, username: "proveedor", fullName: "Proveedor Demo", email: "demo@example.com", roleId: 3, roleName: "ROLE_CLIENTE", active: true });
     fixture.detectChanges();
     const element: HTMLElement = fixture.nativeElement;
     expect(element.textContent).toContain("Proveedor Demo");
-    expect(element.textContent).toContain("PROVEEDOR");
+    expect(element.textContent).toContain("CLIENTE");
     expect(element.querySelector('a[href="/usuarios"]')).toBeNull();
     users.next(null);
     fixture.detectChanges();

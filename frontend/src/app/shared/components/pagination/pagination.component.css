@@ -1,0 +1,101 @@
+.sakura-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, rgba(230, 200, 215, 0.4));
+  border-radius: 14px;
+  margin-top: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.total-info {
+  font-size: 0.88rem;
+  color: var(--text-secondary, #6b7280);
+}
+
+.total-info strong {
+  color: var(--sakura-pink, #e85d75);
+}
+
+.nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 auto;
+}
+
+.btn-pager {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  border-radius: 10px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-surface, #ffffff);
+  color: var(--text-primary, #1f2937);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-pager:hover:not(:disabled) {
+  border-color: var(--sakura-pink, #e85d75);
+  color: var(--sakura-pink, #e85d75);
+  background: var(--sakura-pink-light, rgba(232, 93, 117, 0.08));
+  transform: translateY(-1px);
+}
+
+.btn-pager:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.page-indicator {
+  font-size: 0.9rem;
+  color: var(--text-secondary, #6b7280);
+  padding: 0 4px;
+}
+
+.page-indicator strong {
+  color: var(--text-primary, #111827);
+}
+
+.size-selector {
+  display: flex;
+  align-items: center;
+}
+
+.size-select {
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--bg-surface, #ffffff);
+  color: var(--text-primary, #1f2937);
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.size-select:focus {
+  border-color: var(--sakura-pink, #e85d75);
+}
+
+@media (max-width: 640px) {
+  .sakura-pagination {
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+

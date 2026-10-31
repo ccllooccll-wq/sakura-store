@@ -1,0 +1,27 @@
+import { TestBed } from "@angular/core/testing";
+import { HttpErrorResponse } from "@angular/common/http";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { of, Subject, throwError } from "rxjs";
+import { ReportsComponent } from "./reports.component";
+import { ReportsService } from "../../core/services/reports.service";
+import { InventoryService } from "../../core/services/inventory.service";
+import { ReportPage } from "../../core/models/reports.model";
+describe("Reportes",()=>{
+ const page:ReportPage={content:[{id:1,total:35}],totalElements:25,totalPages:2,page:0,size:20};
+ const summary={salesCount:25,total:100,subtotal:110,discount:10,averageTicket:4};
+ let api:{page:ReturnType<typeof vi.fn>;summary:ReturnType<typeof vi.fn>;export:ReturnType<typeof vi.fn>};
+ beforeEach(()=>{api={page:vi.fn().mockReturnValue(of(page)),summary:vi.fn().mockReturnValue(of(summary)),export:vi.fn()};
+ TestBed.configureTestingModule({imports:[ReportsComponent],providers:[{provide:ReportsService,useValue:api},{provide:InventoryService,useValue:{categories:()=>of([])}}]});});
+ it("carga, pagina y vuelve al inicio al cambiar de reporte",()=>{const f=TestBed.createComponent(ReportsComponent);f.detectChanges();const c=f.componentInstance;
+ expect(c.summary()?.total).toBe(100);c.changePage(1);expect(c.page).toBe(1);c.select("low-stock");expect(c.page).toBe(0);expect(api.page).toHaveBeenLastCalledWith("low-stock",expect.anything(),0,20);});
+ it("rechaza fechas invertidas sin exportar datos viejos",()=>{const f=TestBed.createComponent(ReportsComponent);f.detectChanges();const c=f.componentInstance;
+ api.page.mockClear();c.filters.from="2026-10-20";c.filters.to="2026-10-10";c.apply();c.download();expect(api.page).not.toHaveBeenCalled();expect(api.export).not.toHaveBeenCalled();expect(c.error).toContain("rango");});
+ it("bloquea paginación y exportación con filtros pendientes",()=>{const f=TestBed.createComponent(ReportsComponent);f.detectChanges();const c=f.componentInstance;
+ c.filters.from="2025-01-01";c.changePage(1);c.download();expect(c.page).toBe(0);expect(api.export).not.toHaveBeenCalled();expect(c.pendingChanges).toBe(true);});
+ it("descarta respuestas viejas cuando los filtros son inválidos",()=>{const response=new Subject<ReportPage>();api.page.mockReturnValue(response);const f=TestBed.createComponent(ReportsComponent);f.detectChanges();const c=f.componentInstance;
+ c.filters.from="2026-12-01";c.filters.to="2026-01-01";c.apply();response.next(page);response.complete();expect(c.result()).toBeNull();expect(c.loading()).toBe(false);});
+ it("muestra errores y permite reintentar",()=>{api.page.mockReturnValue(throwError(()=>new HttpErrorResponse({status:500,error:{message:"Fallo temporal"}})));const f=TestBed.createComponent(ReportsComponent);f.detectChanges();const c=f.componentInstance;
+ expect(c.error).toBe("Fallo temporal");expect(c.loading()).toBe(false);api.page.mockReturnValue(of(page));c.load();expect(c.error).toBe("");expect(c.result()).not.toBeNull();});
+ it("muestra vacío y bloquea avanzar fuera del rango",()=>{api.page.mockReturnValue(of({...page,content:[],totalElements:0,totalPages:0}));const f=TestBed.createComponent(ReportsComponent);f.detectChanges();const c=f.componentInstance;
+ expect(f.nativeElement.textContent).toContain("No hay registros");c.changePage(1);expect(c.page).toBe(0);});
+});

@@ -26,20 +26,20 @@
   }
   <section class="metrics" aria-label="Resumen del inventario">
     <article>
-      <span>Productos activos</span><strong>{{ activeCount() }}</strong
+      <span>Productos activos</span><strong>{{ summary().activeCount }}</strong
       ><small>Catálogo disponible</small>
     </article>
     <article>
-      <span>Unidades en stock</span><strong>{{ units() }}</strong
+      <span>Unidades en stock</span><strong>{{ summary().units }}</strong
       ><small>Existencias registradas</small>
     </article>
     <article class="warning">
-      <span>Stock bajo</span><strong>{{ lowCount() }}</strong
+      <span>Stock bajo</span><strong>{{ summary().lowCount }}</strong
       ><small>Productos que necesitan reposición</small>
     </article>
     <article>
       <span>Valor a precio de venta</span
-        ><strong>{{ value() | number: "1.2-2" }} <em>Bs</em></strong
+        ><strong>{{ summary().value | number: "1.2-2" }} <em>Bs</em></strong
         ><small>Stock × precio de venta</small>
       </article>
     </section>
@@ -71,38 +71,68 @@
         <p class="loading" role="status">Cargando inventario…</p>
       }
       @if (tab === 'products') {
-        <div class="tools">
-          <input
-            class="form-control search"
-            [ngModel]="query()" (ngModelChange)="query.set($event)"
-            placeholder="Buscar por nombre, SKU o categoría"
-            aria-label="Buscar productos"
-            /><label class="checkbox"
-            ><input type="checkbox" [ngModel]="onlyLow()" (ngModelChange)="onlyLow.set($event)" /> Solo stock
-            bajo</label
-            ><span class="muted">{{ filtered().length }} productos</span>
+          <div class="tools">
+              <label class="checkbox"
+              ><input type="checkbox" [(ngModel)]="filters.lowStock" (ngModelChange)="applyFilters()" /> Solo stock
+                  bajo</label
+              >
+              @if (hasFilters()) {
+                  <button class="quiet" (click)="clearFilters()">Limpiar filtros</button>
+              }
+              <span class="muted">{{ totalProducts }} productos</span>
           </div>
           <div class="table-wrap">
             <table>
-              <thead>
+                <thead>
                 <tr>
-                  <th>Producto / SKU</th>
-                  <th>Categoría</th>
-                  <th>Precio</th>
-                  <th>Stock / mínimo</th>
-                  <th>Estado</th>
-                  @if (auth.canManageInventory()) {
-                    <th>Acciones</th>
-                  }
+                    <th>Producto</th>
+                    <th>SKU</th>
+                    <th>Categoría</th>
+                    <th>Precio</th>
+                    <th>Stock / mínimo</th>
+                    <th>Estado</th>
+                    @if (auth.canManageInventory()) {
+                        <th>Acciones</th>
+                    }
                 </tr>
-              </thead>
+                <tr class="filter-row">
+                    <th>
+                        <input class="form-control" placeholder="Filtrar nombre" aria-label="Filtrar por nombre"
+                               [(ngModel)]="filters.name" (ngModelChange)="onTyping()" />
+                    </th>
+                    <th>
+                        <input class="form-control" placeholder="Filtrar SKU" aria-label="Filtrar por SKU"
+                               [(ngModel)]="filters.sku" (ngModelChange)="onTyping()" />
+                    </th>
+                    <th>
+                        <select class="form-control" aria-label="Filtrar por categoría"
+                                [(ngModel)]="filters.categoryId" (ngModelChange)="applyFilters()">
+                            <option [ngValue]="0">Todas</option>
+                            @for (c of categories; track c.id) {
+                                <option [ngValue]="c.id">{{ c.name }}</option>
+                            }
+                        </select>
+                    </th>
+                    <th></th>
+                    <th></th>
+                    <th>
+                        <select class="form-control" aria-label="Filtrar por estado"
+                                [(ngModel)]="filters.status" (ngModelChange)="applyFilters()">
+                            <option value="">Todos</option>
+                            <option value="ACTIVE">Activos</option>
+                            <option value="INACTIVE">Inactivos</option>
+                        </select>
+                    </th>
+                    @if (auth.canManageInventory()) {
+                        <th></th>
+                    }
+                </tr>
+                </thead>
               <tbody>
-                @for (p of filtered(); track p.id) {
+                  @for (p of products(); track p.id) {
                   <tr>
-                    <td>
-                      <strong>{{ p.name }}</strong
-                        ><small>{{ p.sku }}</small>
-                      </td>
+                      <td><strong>{{ p.name }}</strong></td>
+                      <td>{{ p.sku }}</td>
                       <td>{{ p.categoryName }}</td>
                       <td>{{ p.price | number: "1.2-2" }} Bs</td>
                       <td>
@@ -133,25 +163,24 @@
               </tbody>
             </table>
           </div>
-          @if (!loading && filtered().length === 0) {
+          @if (!loading && products().length === 0) {
             <div class="empty">
               <div class="empty-icon">◇</div>
               <h2>
                 {{
-                products().length
+                      hasFilters()
                 ? "No hay coincidencias"
                 : "Tu catálogo empieza aquí"
                 }}
               </h2>
               <p>
                 {{
-                products().length
+                      hasFilters()
                 ? "Prueba otro nombre o cambia los filtros."
                 : "Añade tu primer producto y registra una entrada para comenzar."
                 }}
               </p>
-              @if (!products().length && auth.canManageInventory()) {
-                <button
+                @if (!hasFilters() && auth.canManageInventory()) {                <button
                   class="btn-sakura"
                   (click)="openProduct()"
                   >
@@ -160,7 +189,19 @@
               }
             </div>
           }
-        }
+
+        <app-pagination
+            [page]="productPage"
+            [totalPages]="totalPages"
+            [totalElements]="totalProducts"
+            [loading]="loading"
+            [pageSize]="pageSize"
+            [pageSizes]="pageSizes"
+            sizeLabel="por página"
+            (pageChange)="onProductPageChange($event)"
+            (pageSizeChange)="onPageSizeChange($event)"
+        ></app-pagination>
+      }
         @if (tab === 'movements') {
           <div class="tools">
             <p class="muted">
@@ -204,22 +245,12 @@
               Todavía no hay movimientos en esta página.
             </p>
           }
-          <div class="pagination">
-            <button
-              class="quiet"
-              [disabled]="page === 0 || loading"
-              (click)="changePage(-1)"
-              >
-              Anterior</button
-              ><span>Página {{ page + 1 }}</span
-              ><button
-              class="quiet"
-              [disabled]="movements.length < 50 || loading"
-              (click)="changePage(1)"
-              >
-              Siguiente
-            </button>
-          </div>
+          <app-pagination
+            [page]="page"
+            [totalPages]="movements.length < 50 ? page + 1 : page + 2"
+            [loading]="loading"
+            (pageChange)="onMovementsPageChange($event)"
+          ></app-pagination>
         }
       </section>
     </main>
@@ -274,8 +305,12 @@
                 class="form-control"
                 name="name"
                 [(ngModel)]="form.name"
+                [pattern]="namePattern" #productName="ngModel"
                 required
-                maxlength="150" /></label
+                maxlength="150" />
+                @if (productName.invalid && (productName.dirty || productName.touched)) {
+                  <small class="field-error">Solo letras y espacios; sin números ni símbolos.</small>
+                }</label
                 ><label
                 >Categoría<select
                 class="form-control"

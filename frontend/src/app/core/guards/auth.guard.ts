@@ -18,7 +18,14 @@ export const adminGuard: CanActivateFn = () => {
       map((user) =>
         user?.roleName === "ROLE_ADMIN"
           ? true
-          : router.createUrlTree([user ? "/inventario" : "/login"]),
+          : router.createUrlTree([user?.roleName === "ROLE_CLIENTE" ? "/ventas" : user ? "/inventario" : "/login"]),
       ),
     );
+};
+
+export const staffGuard: CanActivateFn = () => {
+  const auth = inject(AuthService), router = inject(Router);
+  return auth.loadSession().pipe(map(user =>
+    user?.roleName === "ROLE_ADMIN" || user?.roleName === "ROLE_VENDEDOR"
+      ? true : router.createUrlTree([user ? "/ventas" : "/login"])));
 };

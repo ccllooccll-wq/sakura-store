@@ -166,23 +166,17 @@
         </tbody>
       </table>
     </div>
-    <div class="pagination-bar">
-        <button type="button" class="btn-secondary"
-                [disabled]="userPage === 0 || loading" (click)="changeUserPage(-1)">
-            Anterior
-        </button>
-        <span>Página {{ userPage + 1 }} de {{ totalPages || 1 }}</span>
-        <button type="button" class="btn-secondary"
-                [disabled]="userPage + 1 >= totalPages || loading" (click)="changeUserPage(1)">
-            Siguiente
-        </button>
-        <select class="form-control page-size" aria-label="Usuarios por página"
-                [(ngModel)]="pageSize" name="pageSize" (ngModelChange)="changePageSize()">
-            @for (n of pageSizes; track n) {
-                <option [ngValue]="n">{{ n }} por página</option>
-            }
-        </select>
-    </div>
+    <app-pagination
+        [page]="userPage"
+        [totalPages]="totalPages"
+        [totalElements]="totalUsers"
+        [loading]="loading"
+        [pageSize]="pageSize"
+        [pageSizes]="pageSizes"
+        sizeLabel="por página"
+        (pageChange)="onUserPageChange($event)"
+        (pageSizeChange)="onPageSizeChange($event)"
+    ></app-pagination>
   </main>
 
   <!-- Modal Form for Create / Edit -->
@@ -225,10 +219,13 @@
                 [(ngModel)]="formData.fullName"
                 name="fullName"
                 maxlength="100"
-                pattern=".*\S.*"
+                [pattern]="namePattern" #fullName="ngModel"
                 required
                 placeholder="Ej. Marcelo Calle"
                 />
+              @if (fullName.invalid && (fullName.dirty || fullName.touched)) {
+                <small class="field-error">Solo letras y espacios; sin números ni símbolos.</small>
+              }
             </div>
             <div class="form-group">
               <label>Correo Electrónico *</label>

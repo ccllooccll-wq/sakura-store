@@ -1,3 +1,4 @@
+import { NAME_PATTERN, NAME_MESSAGE, validName } from "../../../core/validators/name.validator";
 import { Component, inject } from "@angular/core";
 import { ReactiveFormsModule, NonNullableFormBuilder, Validators } from "@angular/forms";
 import { Router, RouterLink } from "@angular/router";
@@ -12,11 +13,12 @@ import { passwordMatch } from "../../../core/validators/password-match.validator
   templateUrl: "./register.component.html", styleUrls: ["./register.component.css"],
 })
 export class RegisterComponent {
+  readonly namePattern = NAME_PATTERN;
   private readonly fb = inject(NonNullableFormBuilder);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   readonly form = this.fb.group({
-    nombre: ["", [Validators.required, Validators.pattern(/\S/), Validators.maxLength(100)]],
+    nombre: ["", [Validators.required, Validators.pattern(NAME_PATTERN), Validators.maxLength(100)]],
     username: ["", [Validators.required, Validators.minLength(3), Validators.maxLength(50)]],
     email: ["", [Validators.required, Validators.email, Validators.maxLength(100)]],
     password: ["", [Validators.required, Validators.minLength(12), Validators.maxLength(72)]],

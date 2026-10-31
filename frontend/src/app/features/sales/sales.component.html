@@ -1,180 +1,251 @@
 <main class="sales-shell">
     <div class="heading">
         <p class="eyebrow">SAKURA STORE / VENTAS</p>
-        <h1>Registro de ventas</h1>
+        <h1>{{ isClient ? "Comprar productos" : "Registro de ventas" }}</h1>
     </div>
 
     @if (lastSale(); as sale) {
         <div class="banner success" role="status">
-      <span>
-        Venta <strong>#{{ sale.id }}</strong> registrada · {{ sale.items.length }} producto(s) ·
-        Total <strong>Bs {{ sale.total | number: "1.2-2" }}</strong>
-      </span>
+            <span>
+                Venta <strong>#{{ sale.id }}</strong> registrada · {{ sale.items.length }} producto(s) ·
+                Total <strong>Bs {{ sale.total | number: "1.2-2" }}</strong>
+            </span>
             <button type="button" class="link" (click)="dismissLastSale()">Cerrar</button>
         </div>
     }
 
-    <div class="grid">
-        <!-- ================= PRODUCTOS ================= -->
-        <section class="card">
-            <h2>Productos</h2>
-            <input
-                    class="input"
-                    placeholder="Buscar por nombre…"
-                    aria-label="Buscar producto"
-                    [(ngModel)]="searchTerm"
-                    (ngModelChange)="onTyping()"
-            />
-
-            @if (error) {
-                <p class="msg error" role="alert">{{ error }}</p>
+    <!-- Navegación por pestañas: separa productos/carrito del historial de ventas -->
+    <nav class="sales-tabs" aria-label="Secciones de ventas">
+        <button
+            type="button"
+            class="tab-btn"
+            [class.active]="activeTab === 'pos'"
+            (click)="activeTab = 'pos'"
+        >
+            <i class="fa-solid fa-cart-shopping"></i>
+            <span>{{ isClient ? "Catálogo y Carrito" : "Punto de Venta" }}</span>
+            @if (itemCount() > 0) {
+                <span class="tab-badge">{{ itemCount() }}</span>
             }
+        </button>
 
-            <ul class="results">
-                @for (p of results(); track p.id) {
-                    <li class="result">
-                        <div class="info">
-                            <strong>{{ p.name }}</strong>
-                            <small>{{ p.sku }} · {{ p.categoryName }}</small>
-                        </div>
-                        <div class="meta">
-                            <span>Bs {{ p.price | number: "1.2-2" }}</span>
-                            <small [class.low]="p.stock <= p.minStock">Stock: {{ p.stock }}</small>
-                        </div>
-                        <button type="button" class="btn" [disabled]="!canAdd(p)" (click)="addProduct(p)">
-                            {{ p.stock === 0 ? "Sin stock" : "Agregar" }}
-                        </button>
-                    </li>
-                } @empty {
-                    @if (!searching()) {
-                        <li class="empty">No se encontraron productos.</li>
-                    }
+        <button
+            type="button"
+            class="tab-btn"
+            [class.active]="activeTab === 'history'"
+            (click)="activeTab = 'history'"
+        >
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <span>{{ isClient ? "Mis compras" : "Historial de ventas" }}</span>
+            <span class="tab-badge neutral">{{ historyTotal }}</span>
+        </button>
+    </nav>
+
+    @if (activeTab === 'pos') {
+        <!-- ================= WIZARD: INDICADOR DE PASOS ================= -->
+        <div class="wizard-steps">
+            <button type="button" class="wizard-step" [class.active]="posStep === 'products'" (click)="posStep = 'products'">
+                <span class="step-number">1</span>
+                <span class="step-label">Seleccionar productos</span>
+            </button>
+            <div class="step-connector" [class.done]="posStep === 'cart'"></div>
+            <button type="button" class="wizard-step" [class.active]="posStep === 'cart'" (click)="cart().length ? posStep = 'cart' : null">
+                <span class="step-number">2</span>
+                <span class="step-label">Carrito</span>
+            </button>
+        </div>
+
+        <!-- ================= PASO 1: PRODUCTOS ================= -->
+        @if (posStep === 'products') {
+            <section class="card wizard-card">
+                <h2>Productos</h2>
+                <input
+                        class="input"
+                        placeholder="Buscar por nombre…"
+                        aria-label="Buscar producto"
+                        [(ngModel)]="searchTerm"
+                        (ngModelChange)="onTyping()"
+                />
+
+                @if (error) {
+                    <p class="msg error" role="alert">{{ error }}</p>
                 }
-            </ul>
-            @if (searching()) {
-                <p class="muted" role="status">Buscando…</p>
-            }
-        </section>
 
-        <!-- ================= CARRITO ================= -->
-        <section class="card">
-            <h2>Carrito <span class="muted">({{ itemCount() }})</span></h2>
-
-            @if (!cart().length) {
-                <p class="empty">Agrega productos para comenzar la venta.</p>
-            } @else {
-                <ul class="cart">
-                    @for (line of cart(); track line.product.id) {
-                        <li class="line">
+                <ul class="results">
+                    @for (p of results(); track p.id) {
+                        <li class="result">
                             <div class="info">
-                                <strong>{{ line.product.name }}</strong>
-                                <small>Bs {{ line.product.price | number: "1.2-2" }} c/u</small>
+                                <strong>{{ p.name }}</strong>
+                                <small>{{ p.sku }} · {{ p.categoryName }}</small>
                             </div>
-                            <div class="qty">
-                                <button type="button" class="btn small" aria-label="Quitar una unidad"
-                                        (click)="changeQuantity(line, -1)">−</button>
-                                <input #qty type="number" min="1" [max]="line.product.stock"
-                                       class="input qty-input" aria-label="Cantidad"
-                                       [value]="line.quantity" (change)="setQuantity(line, qty)" />
-                                <button type="button" class="btn small" aria-label="Agregar una unidad"
-                                        (click)="changeQuantity(line, 1)">+</button>
+                            <div class="meta">
+                                <span>Bs {{ p.price | number: "1.2-2" }}</span>
+                                <small [class.low]="p.stock <= p.minStock">Stock: {{ p.stock }}</small>
                             </div>
-                            <strong class="line-total">
-                                Bs {{ line.product.price * line.quantity | number: "1.2-2" }}
-                            </strong>
-                            <button type="button" class="link danger" (click)="removeLine(line)">Quitar</button>
+                            <button type="button" class="btn" [disabled]="!canAdd(p)" (click)="addProduct(p)">
+                                {{ p.stock === 0 ? "Sin stock" : "Agregar" }}
+                            </button>
                         </li>
+                    } @empty {
+                        @if (!searching()) {
+                            <li class="empty">No se encontraron productos.</li>
+                        }
                     }
                 </ul>
-            }
-
-            <label class="field">
-                <span>Cliente (opcional)</span>
-                <input class="input" placeholder="Nombre del cliente" [(ngModel)]="customerName" />
-            </label>
-
-            <label class="field">
-                <span>Descuento (Bs)</span>
-                <input type="number" min="0" step="0.01" class="input"
-                       [class.invalid]="discountInvalid()"
-                       [ngModel]="discount()" (ngModelChange)="setDiscount($event)" />
-                @if (discountInvalid()) {
-                    <small class="msg error">El descuento no puede ser mayor al subtotal.</small>
+                @if (searching()) {
+                    <p class="muted" role="status">Buscando…</p>
                 }
-            </label>
 
-            <dl class="totals">
-                <div><dt>Subtotal</dt><dd>Bs {{ subtotal() | number: "1.2-2" }}</dd></div>
-                <div><dt>Descuento</dt><dd>− Bs {{ discount() | number: "1.2-2" }}</dd></div>
-                <div class="grand"><dt>Total</dt><dd>Bs {{ total() | number: "1.2-2" }}</dd></div>
-            </dl>
-
-            @if (saleError) {
-                <p class="msg error" role="alert">{{ saleError }}</p>
-            }
-
-            <div class="actions">
-                <button type="button" class="btn primary"
-                        [disabled]="saving() || !cart().length || discountInvalid()"
-                        (click)="confirmSale()">
-                    {{ saving() ? "Registrando…" : "Confirmar venta" }}
-                </button>
-                <button type="button" class="btn" [disabled]="saving() || !cart().length" (click)="clearCart()">
-                    Vaciar
-                </button>
-            </div>
-        </section>
-    </div>
-
-    <!-- ================= HISTORIAL ================= -->
-    <section class="card history">
-        <h2>Historial de ventas <span class="muted">({{ historyTotal }})</span></h2>
-
-        @if (historyError) {
-            <p class="msg error" role="alert">{{ historyError }}</p>
+                <!-- Navegación del wizard -->
+                <div class="wizard-nav">
+                    @if (itemCount() > 0) {
+                        <div class="cart-indicator">
+                            <i class="fa-solid fa-cart-shopping"></i>
+                            <span>{{ itemCount() }} producto(s) en el carrito</span>
+                        </div>
+                    }
+                    <button type="button" class="btn primary wizard-next" [disabled]="!cart().length" (click)="posStep = 'cart'">
+                        Siguiente <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </div>
+            </section>
         }
 
-        <div class="table-wrap">
-            <table>
-                <thead>
-                <tr>
-                    <th>N.º</th><th>Fecha</th><th>Cliente</th><th>Vendedor</th>
-                    <th>Productos</th><th>Total</th><th>Estado</th>
-                </tr>
-                </thead>
-                <tbody>
-                    @for (s of history(); track s.id) {
-                        <tr>
-                            <td>#{{ s.id }}</td>
-                            <td>{{ s.createdAt | date: "dd/MM/yyyy HH:mm" }}</td>
-                            <td>{{ s.customerName || "—" }}</td>
-                            <td>{{ s.sellerName }}</td>
-                            <td>{{ s.items.length }}</td>
-                            <td>Bs {{ s.total | number: "1.2-2" }}</td>
-                            <td>
-                <span class="badge" [class.cancelled]="s.status === 'CANCELLED'">
-                  {{ s.status === "COMPLETED" ? "Completada" : "Anulada" }}
-                </span>
-                            </td>
-                        </tr>
-                    } @empty {
-                        <tr>
-                            <td colspan="7" class="empty">
-                                {{ historyLoading() ? "Cargando ventas…" : "Todavía no hay ventas registradas." }}
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
-        </div>
+        <!-- ================= PASO 2: CARRITO ================= -->
+        @if (posStep === 'cart') {
+            <section class="card wizard-card">
+                <h2>Carrito <span class="muted">({{ itemCount() }})</span></h2>
 
-        <div class="pagination">
-            <button type="button" class="btn" [disabled]="historyPage === 0 || historyLoading()"
-                    (click)="changeHistoryPage(-1)">Anterior</button>
-            <span>Página {{ historyPage + 1 }} de {{ historyTotalPages || 1 }}</span>
-            <button type="button" class="btn"
-                    [disabled]="historyPage + 1 >= historyTotalPages || historyLoading()"
-                    (click)="changeHistoryPage(1)">Siguiente</button>
-        </div>
-    </section>
+                @if (!cart().length) {
+                    <p class="empty">Agrega productos para comenzar la venta.</p>
+                } @else {
+                    <ul class="cart">
+                        @for (line of cart(); track line.product.id) {
+                            <li class="line">
+                                <div class="info">
+                                    <strong>{{ line.product.name }}</strong>
+                                    <small>Bs {{ line.product.price | number: "1.2-2" }} c/u</small>
+                                </div>
+                                <div class="qty">
+                                    <button type="button" class="btn small" aria-label="Quitar una unidad"
+                                            (click)="changeQuantity(line, -1)">−</button>
+                                    <input #qty type="number" min="1" [max]="line.product.stock"
+                                           class="input qty-input" aria-label="Cantidad"
+                                           [value]="line.quantity" (change)="setQuantity(line, qty)" />
+                                    <button type="button" class="btn small" aria-label="Agregar una unidad"
+                                            (click)="changeQuantity(line, 1)">+</button>
+                                </div>
+                                <strong class="line-total">
+                                    Bs {{ line.product.price * line.quantity | number: "1.2-2" }}
+                                </strong>
+                                <button type="button" class="link danger" (click)="removeLine(line)">Quitar</button>
+                            </li>
+                        }
+                    </ul>
+                }
+
+                @if (!isClient) {
+                <label class="field">
+                    <span>Cliente (opcional)</span>
+                    <input class="input" placeholder="Nombre del cliente" [(ngModel)]="customerName" [pattern]="namePattern" maxlength="200" #clientName="ngModel" />
+                    @if (clientName.invalid && clientName.dirty) { <small class="field-error">Solo letras y espacios; sin números ni símbolos.</small> }
+                </label>
+
+                <label class="field">
+                    <span>Descuento (Bs)</span>
+                    <input type="number" min="0" step="0.01" class="input"
+                           [class.invalid]="discountInvalid()"
+                           [ngModel]="discount()" (ngModelChange)="setDiscount($event)" />
+                    @if (discountInvalid()) {
+                        <small class="msg error">El descuento no puede ser mayor al subtotal.</small>
+                    }
+                </label>
+
+                } @else {
+                    <p class="muted">La compra se registra en tu cuenta. Pago y retiro en tienda.</p>
+                }
+
+                <dl class="totals">
+                    <div><dt>Subtotal</dt><dd>Bs {{ subtotal() | number: "1.2-2" }}</dd></div>
+                    <div><dt>Descuento</dt><dd>− Bs {{ discount() | number: "1.2-2" }}</dd></div>
+                    <div class="grand"><dt>Total</dt><dd>Bs {{ total() | number: "1.2-2" }}</dd></div>
+                </dl>
+
+                @if (saleError) {
+                    <p class="msg error" role="alert">{{ saleError }}</p>
+                }
+
+                <!-- Navegación del wizard -->
+                <div class="wizard-nav">
+                    <button type="button" class="btn wizard-back" (click)="posStep = 'products'">
+                        <i class="fa-solid fa-arrow-left"></i> Volver a productos
+                    </button>
+                    <div class="wizard-nav-right">
+                        <button type="button" class="btn" [disabled]="saving() || !cart().length" (click)="clearCart()">
+                            Vaciar
+                        </button>
+                        <button type="button" class="btn primary"
+                                [disabled]="saving() || !cart().length || discountInvalid()"
+                                (click)="confirmSale()">
+                            {{ saving() ? "Registrando…" : (isClient ? "Confirmar compra" : "Confirmar venta") }}
+                        </button>
+                    </div>
+                </div>
+            </section>
+        }
+    }
+
+    @if (activeTab === 'history') {
+        <!-- ================= HISTORIAL ================= -->
+        <section class="card history">
+            <h2>{{ isClient ? "Mis compras" : "Historial de ventas" }} <span class="muted">({{ historyTotal }})</span></h2>
+
+            @if (historyError) {
+                <p class="msg error" role="alert">{{ historyError }}</p>
+            }
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>N.º</th><th>Fecha</th><th>Cliente</th><th>Vendedor</th>
+                        <th>Productos</th><th>Total</th><th>Estado</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                        @for (s of history(); track s.id) {
+                            <tr>
+                                <td>#{{ s.id }}</td>
+                                <td>{{ s.createdAt | date: "dd/MM/yyyy HH:mm" }}</td>
+                                <td>{{ s.customerName || "—" }}</td>
+                                <td>{{ s.sellerName }}</td>
+                                <td>{{ s.items.length }}</td>
+                                <td>Bs {{ s.total | number: "1.2-2" }}</td>
+                                <td>
+                    <span class="badge" [class.cancelled]="s.status === 'CANCELLED'">
+                      {{ s.status === "COMPLETED" ? "Completada" : "Anulada" }}
+                    </span>
+                                </td>
+                            </tr>
+                        } @empty {
+                            <tr>
+                                <td colspan="7" class="empty">
+                                    {{ historyLoading() ? "Cargando ventas…" : "Todavía no hay ventas registradas." }}
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación única reutilizable compartida -->
+            <app-pagination
+                [page]="historyPage"
+                [totalPages]="historyTotalPages"
+                [totalElements]="historyTotal"
+                [loading]="historyLoading()"
+                (pageChange)="onHistoryPageChange($event)"
+            ></app-pagination>
+        </section>
+    }
 </main>

@@ -1,0 +1,51 @@
+<div class="sakura-pagination" role="navigation" aria-label="Paginación">
+  @if (totalElements !== undefined) {
+    <span class="total-info">
+      Total: <strong>{{ totalElements }}</strong>
+    </span>
+  }
+
+  <div class="nav-controls">
+    <button
+      type="button"
+      class="btn-pager"
+      [disabled]="!hasPrevious"
+      (click)="onPrev()"
+      aria-label="Página anterior"
+    >
+      <i class="fa-solid fa-chevron-left"></i>
+      <span>Anterior</span>
+    </button>
+
+    <span class="page-indicator">
+      Página <strong>{{ page + 1 }}</strong> de <strong>{{ displayTotalPages }}</strong>
+    </span>
+
+    <button
+      type="button"
+      class="btn-pager"
+      [disabled]="!hasNext"
+      (click)="onNext()"
+      aria-label="Página siguiente"
+    >
+      <span>Siguiente</span>
+      <i class="fa-solid fa-chevron-right"></i>
+    </button>
+  </div>
+
+  @if (pageSizes && pageSizes.length && pageSize !== undefined) {
+    <div class="size-selector">
+      <select
+        class="size-select"
+        aria-label="Elementos por página"
+        [ngModel]="pageSize"
+        (ngModelChange)="onSizeChange($event)"
+      >
+        @for (n of pageSizes; track n) {
+          <option [ngValue]="n">{{ n }} {{ sizeLabel }}</option>
+        }
+      </select>
+    </div>
+  }
+</div>
+
