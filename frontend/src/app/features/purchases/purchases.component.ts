@@ -3,10 +3,10 @@ import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { HttpErrorResponse } from "@angular/common/http";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { EMPTY, Subject, catchError, debounceTime, switchMap, tap } from "rxjs";
+import { EMPTY, Subject, catchError, switchMap, tap } from "rxjs";
 import { InventoryService } from "../../core/services/inventory.service";
 import { PurchasesService } from "../../core/services/purchases.service";
-import { Product } from "../../core/models/inventory.model";
+import { Category, Product, ProductFilters } from "../../core/models/inventory.model";
 import { Purchase, PurchaseCommand, PurchaseLine } from "../../core/models/purchases.model";
 import { httpErrorMessage } from "../../core/utils/http-error";
 
@@ -27,7 +27,16 @@ export class PurchasesComponent implements OnInit {
   private readonly purchases = inject(PurchasesService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly search$ = new Subject<void>();
-  private readonly typing$ = new Subject<void>();
+  searchSku = "";
+  searchCategoryId = 0;
+  categories: Category[] = [];
+  resultPage = 0;
+  resultSize = 20;
+  resultTotalPages = 0;
+  resultTotal = 0;
+  private appliedSearch: ProductFilters = {
+    name: "", sku: "", categoryId: 0, status: "ACTIVE", lowStock: false,
+  };
   private historyRequest = 0;
   searchTerm = "";
   supplierReference = "";
@@ -49,26 +58,52 @@ export class PurchasesComponent implements OnInit {
   readonly total = computed(() => round2(this.cart().reduce((n, l) => n + l.quantity * l.unitPrice, 0)));
   readonly itemCount = computed(() => this.cart().reduce((n, l) => n + l.quantity, 0));
   readonly invalid = computed(() => this.inputErrors().size > 0 || !this.cart().length || this.cart().length > 100
-    || this.cart().some(l => !Number.isInteger(l.quantity) || l.quantity < 1 || l.quantity > 1000000
-      || !Number.isFinite(l.unitPrice) || l.unitPrice < 0 || l.unitPrice > MAX_TOTAL)
-    || !Number.isFinite(this.total()) || this.total() > MAX_TOTAL);
+      || this.cart().some(l => !Number.isInteger(l.quantity) || l.quantity < 1 || l.quantity > 1000000
+          || !Number.isFinite(l.unitPrice) || l.unitPrice < 0 || l.unitPrice > MAX_TOTAL)
+      || !Number.isFinite(this.total()) || this.total() > MAX_TOTAL);
   constructor() {
     this.search$.pipe(
-      tap(() => this.searching.set(true)),
-      switchMap(() => this.inventory.products({
-        name: this.searchTerm.trim(), sku: "", categoryId: 0, status: "ACTIVE", lowStock: false,
-      }, 0, 8).pipe(catchError((e: HttpErrorResponse) => {
-        this.error = httpErrorMessage(e, "No se pudieron cargar los productos.");
-        this.searching.set(false); return EMPTY;
-      }))), takeUntilDestroyed(this.destroyRef),
+        tap(() => this.searching.set(true)),
+        switchMap(() => this.inventory.products({
+          ...this.appliedSearch,
+        }, this.resultPage, this.resultSize).pipe(catchError((e: HttpErrorResponse) => {
+          this.error = httpErrorMessage(e, "No se pudieron cargar los productos.");
+          this.searching.set(false); return EMPTY;
+        }))), takeUntilDestroyed(this.destroyRef),
     ).subscribe(page => {
-      this.results.set(page.content); this.error = ""; this.searching.set(false);
+      this.results.set(page.content); this.error = "";
+      this.resultTotal = page.totalElements;
+      this.resultTotalPages = page.totalPages;
+      this.searching.set(false);
     });
-    this.typing$.pipe(debounceTime(300), takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.search$.next());
   }
-  ngOnInit(): void { this.search$.next(); this.loadHistory(); }
-  onTyping(): void { this.typing$.next(); }
+  ngOnInit(): void {
+    this.search$.next();
+    this.loadHistory();
+    this.inventory.categories().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: categories => this.categories = categories,
+      error: () => this.error = "No se pudieron cargar las categorías.",
+    });
+  }
+  searchProducts(): void {
+    this.appliedSearch = {
+      name: this.searchTerm.trim(), sku: this.searchSku.trim(),
+      categoryId: Number(this.searchCategoryId) || 0, status: "ACTIVE", lowStock: false,
+    };
+    this.resultPage = 0;
+    this.search$.next();
+  }
+  clearProductFilters(): void {
+    this.searchTerm = "";
+    this.searchSku = "";
+    this.searchCategoryId = 0;
+    this.searchProducts();
+  }
+  onResultPageChange(next: number): void {
+    if (this.searching() || next < 0 || next >= this.resultTotalPages) return;
+    this.resultPage = next;
+    this.search$.next();
+  }
   addProduct(product: Product): void {
     if (this.saving() || !product.active) return;
     const old = this.cart().find(l => l.product.id === product.id);
@@ -91,7 +126,7 @@ export class PurchasesComponent implements OnInit {
     this.markInput(line.product.id + ":cost", !valid);
     if (!valid) return;
     this.cart.update(lines => lines.map(l =>
-      l.product.id === line.product.id ? { ...l, unitPrice: round2(cost) } : l));
+        l.product.id === line.product.id ? { ...l, unitPrice: round2(cost) } : l));
   }
   removeLine(line: PurchaseLine): void {
     if (this.saving()) return;
@@ -106,7 +141,7 @@ export class PurchasesComponent implements OnInit {
       return next;
     });
     this.saveError = this.inputErrors().size
-      ? "Revisa las cantidades y los costos: utiliza valores válidos y completa los campos." : "";
+        ? "Revisa las cantidades y los costos: utiliza valores válidos y completa los campos." : "";
   }
   clearCart(): void {
     if (this.saving()) return;

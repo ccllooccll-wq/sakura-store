@@ -14,15 +14,15 @@
         </div>
     }
 
-    <!-- Navegación por pestañas: separa productos/carrito del historial de ventas -->
+
     <nav class="sales-tabs" aria-label="Secciones de ventas">
         <button
-            type="button"
-            class="tab-btn"
-            [class.active]="activeTab === 'pos'"
-            (click)="activeTab = 'pos'"
+                type="button"
+                class="tab-btn"
+                [class.active]="activeTab === 'pos'"
+                (click)="activeTab = 'pos'"
         >
-            <i class="fa-solid fa-cart-shopping"></i>
+
             <span>{{ isClient ? "Catálogo y Carrito" : "Punto de Venta" }}</span>
             @if (itemCount() > 0) {
                 <span class="tab-badge">{{ itemCount() }}</span>
@@ -30,19 +30,19 @@
         </button>
 
         <button
-            type="button"
-            class="tab-btn"
-            [class.active]="activeTab === 'history'"
-            (click)="activeTab = 'history'"
+                type="button"
+                class="tab-btn"
+                [class.active]="activeTab === 'history'"
+                (click)="activeTab = 'history'"
         >
-            <i class="fa-solid fa-clock-rotate-left"></i>
+
             <span>{{ isClient ? "Mis compras" : "Historial de ventas" }}</span>
             <span class="tab-badge neutral">{{ historyTotal }}</span>
         </button>
     </nav>
 
     @if (activeTab === 'pos') {
-        <!-- ================= WIZARD: INDICADOR DE PASOS ================= -->
+
         <div class="wizard-steps">
             <button type="button" class="wizard-step" [class.active]="posStep === 'products'" (click)="posStep = 'products'">
                 <span class="step-number">1</span>
@@ -55,17 +55,31 @@
             </button>
         </div>
 
-        <!-- ================= PASO 1: PRODUCTOS ================= -->
+
         @if (posStep === 'products') {
             <section class="card wizard-card">
                 <h2>Productos</h2>
-                <input
-                        class="input"
-                        placeholder="Buscar por nombre…"
-                        aria-label="Buscar producto"
-                        [(ngModel)]="searchTerm"
-                        (ngModelChange)="onTyping()"
-                />
+                <form class="manual-product-filters" (ngSubmit)="searchProducts()" aria-label="Buscar productos para venta">
+                    <label>Nombre
+                        <input class="input" name="productName" [(ngModel)]="searchTerm" placeholder="Nombre del producto" />
+                    </label>
+                    <label>SKU
+                        <input class="input" name="productSku" [(ngModel)]="searchSku" placeholder="Código SKU" />
+                    </label>
+                    <label>Categoría
+                        <select class="input" name="productCategory" [(ngModel)]="searchCategoryId">
+                            <option [ngValue]="0">Todas</option>
+                            @for (category of categories; track category.id) {
+                                <option [ngValue]="category.id">{{ category.name }}</option>
+                            }
+                        </select>
+                    </label>
+                    <div class="filter-actions">
+                        <button class="btn primary" type="submit" [disabled]="searching()">Buscar</button>
+                        <button class="btn" type="button" (click)="clearProductFilters()" [disabled]="searching()">Limpiar</button>
+                    </div>
+                </form>
+                <p class="muted">{{ resultTotal }} productos disponibles</p>
 
                 @if (error) {
                     <p class="msg error" role="alert">{{ error }}</p>
@@ -75,7 +89,18 @@
                     @for (p of results(); track p.id) {
                         <li class="result">
                             <div class="info">
-                                <strong>{{ p.name }}</strong>
+                                <strong class="producto-con-foto">
+                                    <img
+                                            class="foto-producto"
+                                            [src]="'/assets/productos/' + p.sku + '.webp'"
+                                            alt=""
+                                            loading="lazy"
+                                            (error)="foto.hidden = true"
+                                            (load)="foto.hidden = false"
+                                            #foto
+                                    />
+                                    {{ p.name }}
+                                </strong>
                                 <small>{{ p.sku }} · {{ p.categoryName }}</small>
                             </div>
                             <div class="meta">
@@ -95,23 +120,31 @@
                 @if (searching()) {
                     <p class="muted" role="status">Buscando…</p>
                 }
+                <app-pagination
+                        [page]="resultPage"
+                        [totalPages]="resultTotalPages"
+                        [totalElements]="resultTotal"
+                        [pageSize]="resultSize"
+                        [loading]="searching()"
+                        (pageChange)="onResultPageChange($event)"
+                ></app-pagination>
 
-                <!-- Navegación del wizard -->
+
                 <div class="wizard-nav">
                     @if (itemCount() > 0) {
                         <div class="cart-indicator">
-                            <i class="fa-solid fa-cart-shopping"></i>
+
                             <span>{{ itemCount() }} producto(s) en el carrito</span>
                         </div>
                     }
                     <button type="button" class="btn primary wizard-next" [disabled]="!cart().length" (click)="posStep = 'cart'">
-                        Siguiente <i class="fa-solid fa-arrow-right"></i>
+                        Siguiente
                     </button>
                 </div>
             </section>
         }
 
-        <!-- ================= PASO 2: CARRITO ================= -->
+
         @if (posStep === 'cart') {
             <section class="card wizard-card">
                 <h2>Carrito <span class="muted">({{ itemCount() }})</span></h2>
@@ -123,7 +156,18 @@
                         @for (line of cart(); track line.product.id) {
                             <li class="line">
                                 <div class="info">
-                                    <strong>{{ line.product.name }}</strong>
+                                    <strong class="producto-con-foto">
+                                        <img
+                                                class="foto-producto"
+                                                [src]="'/assets/productos/' + line.product.sku + '.webp'"
+                                                alt=""
+                                                loading="lazy"
+                                                (error)="foto.hidden = true"
+                                                (load)="foto.hidden = false"
+                                                #foto
+                                        />
+                                        {{ line.product.name }}
+                                    </strong>
                                     <small>Bs {{ line.product.price | number: "1.2-2" }} c/u</small>
                                 </div>
                                 <div class="qty">
@@ -145,21 +189,21 @@
                 }
 
                 @if (!isClient) {
-                <label class="field">
-                    <span>Cliente (opcional)</span>
-                    <input class="input" placeholder="Nombre del cliente" [(ngModel)]="customerName" [pattern]="namePattern" maxlength="200" #clientName="ngModel" />
-                    @if (clientName.invalid && clientName.dirty) { <small class="field-error">Solo letras y espacios; sin números ni símbolos.</small> }
-                </label>
+                    <label class="field">
+                        <span>Cliente (opcional)</span>
+                        <input class="input" placeholder="Nombre del cliente" [(ngModel)]="customerName" [pattern]="namePattern" maxlength="200" #clientName="ngModel" />
+                        @if (clientName.invalid && clientName.dirty) { <small class="field-error">Solo letras y espacios; sin números ni símbolos.</small> }
+                    </label>
 
-                <label class="field">
-                    <span>Descuento (Bs)</span>
-                    <input type="number" min="0" step="0.01" class="input"
-                           [class.invalid]="discountInvalid()"
-                           [ngModel]="discount()" (ngModelChange)="setDiscount($event)" />
-                    @if (discountInvalid()) {
-                        <small class="msg error">El descuento no puede ser mayor al subtotal.</small>
-                    }
-                </label>
+                    <label class="field">
+                        <span>Descuento (Bs)</span>
+                        <input type="number" min="0" step="0.01" class="input"
+                               [class.invalid]="discountInvalid()"
+                               [ngModel]="discount()" (ngModelChange)="setDiscount($event)" />
+                        @if (discountInvalid()) {
+                            <small class="msg error">El descuento no puede ser mayor al subtotal.</small>
+                        }
+                    </label>
 
                 } @else {
                     <p class="muted">La compra se registra en tu cuenta. Pago y retiro en tienda.</p>
@@ -175,10 +219,10 @@
                     <p class="msg error" role="alert">{{ saleError }}</p>
                 }
 
-                <!-- Navegación del wizard -->
+
                 <div class="wizard-nav">
                     <button type="button" class="btn wizard-back" (click)="posStep = 'products'">
-                        <i class="fa-solid fa-arrow-left"></i> Volver a productos
+                        Volver a productos
                     </button>
                     <div class="wizard-nav-right">
                         <button type="button" class="btn" [disabled]="saving() || !cart().length" (click)="clearCart()">
@@ -196,7 +240,7 @@
     }
 
     @if (activeTab === 'history') {
-        <!-- ================= HISTORIAL ================= -->
+
         <section class="card history">
             <h2>{{ isClient ? "Mis compras" : "Historial de ventas" }} <span class="muted">({{ historyTotal }})</span></h2>
 
@@ -215,13 +259,13 @@
                     <tbody>
                         @for (s of history(); track s.id) {
                             <tr>
-                                <td>#{{ s.id }}</td>
-                                <td>{{ s.createdAt | date: "dd/MM/yyyy HH:mm" }}</td>
-                                <td>{{ s.customerName || "—" }}</td>
-                                <td>{{ s.sellerName }}</td>
-                                <td>{{ s.items.length }}</td>
-                                <td>Bs {{ s.total | number: "1.2-2" }}</td>
-                                <td>
+                                <td data-label="N.º">#{{ s.id }}</td>
+                                <td data-label="Fecha">{{ s.createdAt | date: "dd/MM/yyyy HH:mm" }}</td>
+                                <td data-label="Cliente">{{ s.customerName || "—" }}</td>
+                                <td data-label="Vendedor">{{ s.sellerName }}</td>
+                                <td data-label="Productos">{{ s.items.length }}</td>
+                                <td data-label="Total">Bs {{ s.total | number: "1.2-2" }}</td>
+                                <td data-label="Estado">
                     <span class="badge" [class.cancelled]="s.status === 'CANCELLED'">
                       {{ s.status === "COMPLETED" ? "Completada" : "Anulada" }}
                     </span>
@@ -238,13 +282,12 @@
                 </table>
             </div>
 
-            <!-- Paginación única reutilizable compartida -->
             <app-pagination
-                [page]="historyPage"
-                [totalPages]="historyTotalPages"
-                [totalElements]="historyTotal"
-                [loading]="historyLoading()"
-                (pageChange)="onHistoryPageChange($event)"
+                    [page]="historyPage"
+                    [totalPages]="historyTotalPages"
+                    [totalElements]="historyTotal"
+                    [loading]="historyLoading()"
+                    (pageChange)="onHistoryPageChange($event)"
             ></app-pagination>
         </section>
     }

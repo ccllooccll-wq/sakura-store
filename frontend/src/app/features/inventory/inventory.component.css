@@ -375,3 +375,30 @@ thead {
   th, td { padding: 10px 16px; }
   .pagination { padding: 12px 16px; }
 }
+
+/* Búsqueda manual: filtros encima de la tabla, sin barra horizontal. */
+.manual-filters {
+  display: flex; flex-wrap: wrap; align-items: end; gap: 12px;
+  padding: 16px 20px; border-bottom: 1px solid #302a3c;
+}
+.manual-filters label:not(.checkbox) { display: grid; gap: 6px; flex: 1 1 135px; min-width: 120px; color: #c8c2d7; font-size: 12px; }
+.manual-filters .form-control { width: 100%; min-width: 0; padding: 9px 10px; box-sizing: border-box; }
+.manual-filters .checkbox { align-self: center; }
+.filter-actions { display: flex; gap: 8px; align-items: center; }
+.filter-actions button { min-height: 38px; }
+.result-count { color: #a7a5b6; font-size: 12px; margin-left: auto; }
+.catalog { overflow: visible; }
+.table-wrap { overflow: visible; width: 100%; }
+.catalog table { table-layout: fixed; white-space: normal; }
+.catalog th, .catalog td { padding: 12px 9px; overflow-wrap: anywhere; vertical-align: middle; }
+.catalog .actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.catalog .actions .quiet { margin: 0; }
+@media (max-width: 850px) {
+  .catalog table, .catalog tbody, .catalog tr, .catalog td { display: block; width: 100%; box-sizing: border-box; }
+  .catalog table thead { display: none; }
+  .catalog table tbody tr { border-bottom: 1px solid #4a3b52; padding: 8px 12px; }
+  .catalog table tbody td { display: grid; grid-template-columns: minmax(105px, 35%) minmax(0, 1fr); gap: 8px; border: 0; padding: 7px 0; }
+  .catalog table tbody td[data-label]::before { content: attr(data-label); color: #b5afc4; font-weight: 600; font-size: 12px; }
+  .catalog table tbody td.actions { display: flex; flex-wrap: wrap; }
+  .catalog table tbody td.actions::before { flex-basis: 100%; }
+}
