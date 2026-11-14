@@ -1,7 +1,7 @@
 import { NAME_PATTERN, NAME_MESSAGE, validName } from "../../../core/validators/name.validator";
 import { Component, DestroyRef, OnInit, OnDestroy, inject, signal } from "@angular/core";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { EMPTY, Subject, catchError, debounceTime, switchMap, tap } from "rxjs";
+import { EMPTY, Subject, catchError, switchMap, tap } from "rxjs";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { HttpErrorResponse } from "@angular/common/http";
@@ -32,13 +32,13 @@ export class UserListComponent implements OnInit, OnDestroy {
   rolesLoading = false;
   filters: UserFilters = { username: "", fullName: "", email: "", roleId: 0, status: "" };
   readonly pageSizes = [10, 20, 50];
-  pageSize = 10;
+  pageSize = 20;
   userPage = 0;
   totalPages = 0;
   totalUsers = 0;
   loading = true;
   private readonly reload$ = new Subject<void>();
-  private readonly typing$ = new Subject<void>();
+  private appliedFilters: UserFilters = { ...this.filters };
 
   showModal = false;
   isEditMode = false;
@@ -75,7 +75,7 @@ export class UserListComponent implements OnInit, OnDestroy {
         .pipe(
             tap(() => (this.loading = true)),
             switchMap(() =>
-                this.userService.getUsers(this.filters, this.userPage, this.pageSize).pipe(
+                this.userService.getUsers(this.appliedFilters, this.userPage, this.pageSize).pipe(
                     catchError((err: HttpErrorResponse) => {
                       this.loading = false;
                       this.showError(httpErrorMessage(err, "No se pudo cargar la lista de usuarios."));
@@ -98,20 +98,14 @@ export class UserListComponent implements OnInit, OnDestroy {
           this.loading = false;
         });
 
-    this.typing$
-        .pipe(debounceTime(300), takeUntilDestroyed(inject(DestroyRef)))
-        .subscribe(() => this.applyFilters());
   }
 
   loadUsers(): void {
     this.reload$.next();
   }
 
-  onTyping(): void {
-    this.typing$.next();
-  }
-
   applyFilters(): void {
+    this.appliedFilters = { ...this.filters };
     this.userPage = 0;
     this.reload$.next();
   }
@@ -145,7 +139,8 @@ export class UserListComponent implements OnInit, OnDestroy {
   }
 
   changePageSize(): void {
-    this.applyFilters();
+    this.userPage = 0;
+    this.reload$.next();
   }
 
   loadRoles(): void {
@@ -257,7 +252,7 @@ export class UserListComponent implements OnInit, OnDestroy {
       next: () => {
         this.saving = false;
         this.showSuccess(
-          `Estado del usuario '${user.username}' cambiado a ${newStatus ? "ACTIVO" : "INACTIVO"}.`,
+            `Estado del usuario '${user.username}' cambiado a ${newStatus ? "ACTIVO" : "INACTIVO"}.`,
         );
         this.loadUsers();
       },

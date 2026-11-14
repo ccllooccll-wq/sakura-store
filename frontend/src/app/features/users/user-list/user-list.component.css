@@ -132,7 +132,9 @@
 
 .btn-action {
   border: none;
-  width: 34px;
+  width: auto;
+  padding: 0 12px;
+  white-space: nowrap;
   height: 34px;
   border-radius: 8px;
   cursor: pointer;
@@ -258,4 +260,28 @@
 }
 .sakura-table thead th {
   background: #211d2e;
+}
+
+/* Filtros manuales en la zona superior, tabla completa sin barra interna. */
+.manual-filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
+.manual-filters label { display: grid; gap: 6px; flex: 1 1 142px; min-width: 130px; font-size: 12px; color: var(--text-secondary); }
+.manual-filters .form-control { width: 100%; box-sizing: border-box; min-width: 0; }
+.manual-filters .filter-actions { display: flex; gap: 8px; align-items: end; }
+.manual-filters .filter-actions button { min-height: 40px; }
+.manual-filters .user-count { margin-left: auto; }
+.table-card { overflow: visible; flex: none; min-height: 0; }
+.sakura-table { table-layout: fixed; }
+.sakura-table td, .sakura-table th { overflow-wrap: anywhere; padding: 12px 8px; vertical-align: middle; }
+.sakura-table .username-cell { display: table-cell; }
+.sakura-table .actions-cell { text-align: left; }
+.sakura-table .btn-action { white-space: normal; margin: 3px; padding: 4px 6px; height: auto; min-height: 30px; }
+@media (max-width: 900px) {
+  .sakura-table, .sakura-table tbody, .sakura-table tr, .sakura-table td { display: block; width: 100%; box-sizing: border-box; }
+  .sakura-table thead { display: none; }
+  .sakura-table tbody tr { border-bottom: 1px solid var(--border-color); padding: 12px; }
+  .sakura-table tbody td { display: grid !important; grid-template-columns: minmax(105px, 33%) minmax(0, 1fr); gap: 8px; border: 0; padding: 7px 0; }
+  .sakura-table tbody td[data-label]::before { content: attr(data-label); color: var(--text-secondary); font-size: 12px; font-weight: 600; }
+  .sakura-table tbody td.actions-cell { display: flex !important; flex-wrap: wrap; gap: 4px; }
+  .sakura-table tbody td.actions-cell::before { flex-basis: 100%; }
+  .sakura-table tbody td.empty-state { display: block !important; }
 }

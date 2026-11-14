@@ -5,7 +5,7 @@ import { FormsModule } from "@angular/forms";
 import { HttpErrorResponse } from "@angular/common/http";
 import { httpErrorMessage } from "../../core/utils/http-error";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { EMPTY, Subject, catchError, debounceTime, forkJoin, switchMap, tap } from "rxjs";
+import { EMPTY, Subject, catchError, forkJoin, switchMap, tap } from "rxjs";
 import { AuthService } from "../../core/services/auth.service";
 import { InventoryService } from "../../core/services/inventory.service";
 import { ConfirmationDialogComponent } from "../../shared/components/confirmation-dialog/confirmation-dialog.component";
@@ -38,13 +38,13 @@ export class InventoryComponent implements OnInit {
   readonly summary = signal<InventorySummary>({ activeCount: 0, lowCount: 0, units: 0, value: 0 });
   filters: ProductFilters = { name: "", sku: "", categoryId: 0, status: "", lowStock: false };
   readonly pageSizes = [10, 20, 50];
-  pageSize = 10;
+  pageSize = 20;
   productPage = 0;
   totalPages = 0;
   totalProducts = 0;
   page = 0; // página del historial de movimientos
   private readonly reload$ = new Subject<void>();
-  private readonly typing$ = new Subject<void>();
+  private appliedFilters: ProductFilters = { ...this.filters };
   tab: "products" | "movements" = "products";
   modal: "product" | "movement" | "category" | null = null;
   editingId?: number;
@@ -67,12 +67,12 @@ export class InventoryComponent implements OnInit {
   private readonly api = inject(InventoryService);
   readonly auth = inject(AuthService);
   constructor() {
-    // Carga de productos: switchMap descarta respuestas viejas si el usuario sigue filtrando.
+
     this.reload$
         .pipe(
             tap(() => (this.loading = true)),
             switchMap(() =>
-                this.api.products(this.filters, this.productPage, this.pageSize).pipe(
+                this.api.products(this.appliedFilters, this.productPage, this.pageSize).pipe(
                     catchError((e) => {
                       this.fail(e);
                       return EMPTY;
@@ -82,7 +82,7 @@ export class InventoryComponent implements OnInit {
             takeUntilDestroyed(inject(DestroyRef)),
         )
         .subscribe((res) => {
-          // Si la página quedó fuera de rango (por ejemplo, se filtró), volver a la última válida.
+
           if (!res.content.length && this.productPage > 0 && res.totalPages > 0) {
             this.productPage = res.totalPages - 1;
             this.reload$.next();
@@ -94,21 +94,14 @@ export class InventoryComponent implements OnInit {
           this.loading = false;
         });
 
-    // Los inputs de texto esperan 300 ms antes de consultar al servidor.
-    this.typing$
-        .pipe(debounceTime(300), takeUntilDestroyed(inject(DestroyRef)))
-        .subscribe(() => this.applyFilters());
   }
 
   ngOnInit() {
     this.load();
   }
 
-  onTyping() {
-    this.typing$.next();
-  }
-
   applyFilters() {
+    this.appliedFilters = { ...this.filters };
     this.productPage = 0;
     this.reload$.next();
   }
@@ -142,7 +135,8 @@ export class InventoryComponent implements OnInit {
   }
 
   changePageSize() {
-    this.applyFilters();
+    this.productPage = 0;
+    this.reload$.next();
   }
   load() {
     this.loading = true;
@@ -173,14 +167,14 @@ export class InventoryComponent implements OnInit {
     this.error = "";
     this.editingId = p?.id;
     this.form = p
-      ? {
+        ? {
           sku: p.sku,
           name: p.name,
           categoryId: p.categoryId,
           price: p.price,
           minStock: p.minStock,
         }
-      : {
+        : {
           sku: "",
           name: "",
           categoryId: this.categories[0]?.id ?? 0,
@@ -198,11 +192,11 @@ export class InventoryComponent implements OnInit {
     }
     this.saving = true;
     this.api
-      .save(this.form, this.editingId)
-      .subscribe({
-        next: () => this.done("Producto guardado."),
-        error: (e) => this.fail(e),
-      });
+        .save(this.form, this.editingId)
+        .subscribe({
+          next: () => this.done("Producto guardado."),
+          error: (e) => this.fail(e),
+        });
   }
   openMovement(p: Product) {
     if (!this.auth.canManageInventory() || this.saving || !p.active) return;
@@ -248,11 +242,11 @@ export class InventoryComponent implements OnInit {
     this.statusProduct = null;
     this.saving = true;
     this.api
-      .status(p)
-      .subscribe({
-        next: () => this.done("Estado actualizado."),
-        error: (e) => this.fail(e),
-      });
+        .status(p)
+        .subscribe({
+          next: () => this.done("Estado actualizado."),
+          error: (e) => this.fail(e),
+        });
   }
   done(message: string) {
     this.saving = false;

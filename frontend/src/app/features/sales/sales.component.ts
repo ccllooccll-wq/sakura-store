@@ -3,11 +3,11 @@ import { Component, DestroyRef, OnInit, computed, inject, signal } from "@angula
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
 import { takeUntilDestroyed } from "@angular/core/rxjs-interop";
-import { EMPTY, Subject, catchError, debounceTime, switchMap, tap } from "rxjs";
+import { EMPTY, Subject, catchError, switchMap, tap } from "rxjs";
 import { HttpErrorResponse } from "@angular/common/http";
 import { AuthService } from "../../core/services/auth.service";
 import { InventoryService } from "../../core/services/inventory.service";
-import { Product } from "../../core/models/inventory.model";
+import { Category, Product, ProductFilters } from "../../core/models/inventory.model";
 import { httpErrorMessage } from "../../core/utils/http-error";
 import { SalesService } from "../../core/services/sales.service";
 import { CartLine, Sale, SaleCommand } from "../../core/models/sales.model";
@@ -24,9 +24,10 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
     styleUrls: ["./sales.component.css"],
 })
 export class SalesComponent implements OnInit {
-  activeTab: 'pos' | 'history' = 'pos';
-  posStep: 'products' | 'cart' = 'products';
-  readonly namePattern = NAME_PATTERN;
+    activeTab: 'pos' | 'history' = 'pos';
+    posStep: 'products' | 'cart' = 'products';
+    readonly namePattern = NAME_PATTERN;
+    private readonly destroyRef = inject(DestroyRef);
     private readonly inventory = inject(InventoryService);
     private readonly sales = inject(SalesService);
     private readonly auth = inject(AuthService);
@@ -52,7 +53,16 @@ export class SalesComponent implements OnInit {
     readonly searching = signal(false);
     error = "";
     private readonly search$ = new Subject<void>();
-    private readonly typing$ = new Subject<void>();
+    searchSku = "";
+    searchCategoryId = 0;
+    categories: Category[] = [];
+    resultPage = 0;
+    resultSize = 20;
+    resultTotalPages = 0;
+    resultTotal = 0;
+    private appliedSearch: ProductFilters = {
+        name: "", sku: "", categoryId: 0, status: "ACTIVE", lowStock: false,
+    };
 
 
     readonly cart = signal<CartLine[]>([]);
@@ -74,9 +84,9 @@ export class SalesComponent implements OnInit {
                 switchMap(() =>
                     this.inventory
                         .products(
-                            { name: this.searchTerm.trim(), sku: "", categoryId: 0, status: "ACTIVE", lowStock: false },
-                            0,
-                            8,
+                            this.appliedSearch,
+                            this.resultPage,
+                            this.resultSize,
                         )
                         .pipe(
                             catchError((e: HttpErrorResponse) => {
@@ -91,22 +101,43 @@ export class SalesComponent implements OnInit {
             .subscribe((page) => {
                 this.error = "";
                 this.results.set(page.content);
+                this.resultTotal = page.totalElements;
+                this.resultTotalPages = page.totalPages;
                 this.searching.set(false);
             });
 
 
-        this.typing$
-            .pipe(debounceTime(300), takeUntilDestroyed(inject(DestroyRef)))
-            .subscribe(() => this.search$.next());
     }
 
     ngOnInit(): void {
         this.search$.next();
         this.loadHistory();
+        this.inventory.categories().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+            next: categories => this.categories = categories,
+            error: () => this.error = "No se pudieron cargar las categorías.",
+        });
     }
 
-    onTyping(): void {
-        this.typing$.next();
+    searchProducts(): void {
+        this.appliedSearch = {
+            name: this.searchTerm.trim(), sku: this.searchSku.trim(),
+            categoryId: Number(this.searchCategoryId) || 0, status: "ACTIVE", lowStock: false,
+        };
+        this.resultPage = 0;
+        this.search$.next();
+    }
+
+    clearProductFilters(): void {
+        this.searchTerm = "";
+        this.searchSku = "";
+        this.searchCategoryId = 0;
+        this.searchProducts();
+    }
+
+    onResultPageChange(next: number): void {
+        if (this.searching() || next < 0 || next >= this.resultTotalPages) return;
+        this.resultPage = next;
+        this.search$.next();
     }
 
 

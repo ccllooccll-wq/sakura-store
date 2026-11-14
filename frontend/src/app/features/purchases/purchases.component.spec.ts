@@ -59,7 +59,8 @@ describe("Compras de mercadería", () => {
     purchases.register.mockReturnValue(throwError(() => new HttpErrorResponse({
       status: 400, error: { message: "El producto está desactivado." } })));
     const f = TestBed.createComponent(PurchasesComponent); f.detectChanges(); const c = f.componentInstance;
-    c.addProduct(product); c.confirmPurchase(); f.detectChanges();
+    c.addProduct(product); c.orderStep = "detail"; f.detectChanges();
+    c.confirmPurchase(); f.detectChanges();
     expect(c.cart()).toHaveLength(1); expect(c.saving()).toBe(false);
     expect(f.nativeElement.textContent).toContain("El producto está desactivado.");
   });
